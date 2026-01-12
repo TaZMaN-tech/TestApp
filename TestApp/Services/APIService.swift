@@ -86,10 +86,34 @@ class APIService {
         }
     }
 
-    func login(username: String) async throws -> AuthResponse {
-        let endpoint = "/auth/jwt/access/new"
-        let queryItems = [URLQueryItem(name: "username", value: username)]
-        return try await request(endpoint: endpoint, method: "POST", queryItems: queryItems)
+    func createSession() async throws -> SessionResponse {
+        let endpoint = "/auth/sessions/new"
+        return try await request(endpoint: endpoint, method: "GET")
+    }
+
+    func refreshAccessToken(refreshToken: String) async throws -> TokenInfo {
+        let endpoint = "/auth/jwt/refresh/new"
+
+        guard let url = URL(string: "\(baseURL)\(endpoint)") else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.httpBody = "token=\(refreshToken)".data(using: .utf8)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            throw APIError.unauthorized
+        }
+
+        return try JSONDecoder().decode(TokenInfo.self, from: data)
     }
 
     func getCurrentUser() async throws -> User {

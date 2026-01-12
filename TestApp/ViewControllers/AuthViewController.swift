@@ -9,6 +9,9 @@ import UIKit
 
 class AuthViewController: UIViewController {
 
+    private let authWebSocket = AuthWebSocketService()
+    private var currentSessionId: String?
+
     private let logoLabel: UILabel = {
         let label = UILabel()
         label.text = "Интересно и точка"
@@ -21,47 +24,48 @@ class AuthViewController: UIViewController {
 
     private let subtitleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Войдите чтобы продолжить"
+        label.text = "Отсканируйте QR-код в Telegram боте"
         label.font = UIFont.systemFont(ofSize: 16, weight: .regular)
+        label.textAlignment = .center
+        label.textColor = .secondaryLabel
+        label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let qrCodeImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFit
+        imageView.backgroundColor = .white
+        imageView.layer.cornerRadius = 12
+        imageView.clipsToBounds = true
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        return imageView
+    }()
+
+    private let statusLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Ожидание подключения..."
+        label.font = UIFont.systemFont(ofSize: 14)
         label.textAlignment = .center
         label.textColor = .secondaryLabel
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
 
-    private let usernameTextField: UITextField = {
-        let textField = UITextField()
-        textField.placeholder = "Имя пользователя"
-        textField.borderStyle = .roundedRect
-        textField.autocapitalizationType = .none
-        textField.autocorrectionType = .no
-        textField.backgroundColor = .secondarySystemBackground
-        textField.layer.cornerRadius = 12
-        textField.layer.borderWidth = 1
-        textField.layer.borderColor = UIColor.systemGray4.cgColor
-        textField.font = UIFont.systemFont(ofSize: 16)
-        textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 0))
-        textField.leftViewMode = .always
-        textField.translatesAutoresizingMaskIntoConstraints = false
-        return textField
-    }()
-
-    private let loginButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("Войти", for: .normal)
-        button.backgroundColor = .systemBlue
-        button.setTitleColor(.white, for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .semibold)
-        button.layer.cornerRadius = 12
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
-
     private let activityIndicator: UIActivityIndicatorView = {
-        let indicator = UIActivityIndicatorView(style: .medium)
+        let indicator = UIActivityIndicatorView(style: .large)
         indicator.hidesWhenStopped = true
         indicator.translatesAutoresizingMaskIntoConstraints = false
         return indicator
+    }()
+
+    private let manualTokenButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Ввести токен вручную", for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 14)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
     }()
 
     override func viewDidLoad() {
@@ -76,12 +80,13 @@ class AuthViewController: UIViewController {
 
         view.addSubview(logoLabel)
         view.addSubview(subtitleLabel)
-        view.addSubview(usernameTextField)
-        view.addSubview(loginButton)
+        view.addSubview(qrCodeImageView)
+        view.addSubview(statusLabel)
         view.addSubview(activityIndicator)
+        view.addSubview(manualTokenButton)
 
         NSLayoutConstraint.activate([
-            logoLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -150),
+            logoLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -220),
             logoLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
             logoLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
 
@@ -89,77 +94,110 @@ class AuthViewController: UIViewController {
             subtitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
             subtitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
 
-            usernameTextField.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 48),
-            usernameTextField.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            usernameTextField.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
-            usernameTextField.heightAnchor.constraint(equalToConstant: 54),
+            qrCodeImageView.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 32),
+            qrCodeImageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            qrCodeImageView.widthAnchor.constraint(equalToConstant: 250),
+            qrCodeImageView.heightAnchor.constraint(equalToConstant: 250),
 
-            loginButton.topAnchor.constraint(equalTo: usernameTextField.bottomAnchor, constant: 24),
-            loginButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            loginButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
-            loginButton.heightAnchor.constraint(equalToConstant: 54),
+            statusLabel.topAnchor.constraint(equalTo: qrCodeImageView.bottomAnchor, constant: 24),
+            statusLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
+            statusLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
 
+            activityIndicator.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 16),
             activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            activityIndicator.topAnchor.constraint(equalTo: loginButton.bottomAnchor, constant: 16)
+
+            manualTokenButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            manualTokenButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
     }
 
     private func setupActions() {
-        loginButton.addTarget(self, action: #selector(loginButtonTapped), for: .touchUpInside)
-        usernameTextField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
+        manualTokenButton.addTarget(self, action: #selector(manualTokenButtonTapped), for: .touchUpInside)
     }
 
     private func checkAuthentication() {
         if AuthManager.shared.isAuthenticated {
             navigateToChats()
+        } else {
+            startAuthFlow()
         }
     }
 
-    @objc private func textFieldDidChange() {
-        loginButton.isEnabled = !(usernameTextField.text?.isEmpty ?? true)
-        loginButton.alpha = loginButton.isEnabled ? 1.0 : 0.5
-    }
-
-    @objc private func loginButtonTapped() {
-        guard let username = usernameTextField.text, !username.isEmpty else {
-            showAlert(message: "Пожалуйста введите имя пользователя")
-            return
-        }
-
-        login(username: username)
-    }
-
-    private func login(username: String) {
-        loginButton.isEnabled = false
-        usernameTextField.isEnabled = false
+    private func startAuthFlow() {
         activityIndicator.startAnimating()
+        statusLabel.text = "Создание сессии..."
+
+        authWebSocket.delegate = self
 
         Task {
             do {
-                let response = try await APIService.shared.login(username: username)
-                AuthManager.shared.saveTokens(response.tokens, userId: response.user.id)
+                let session = try await APIService.shared.createSession()
+                currentSessionId = session.id
 
                 await MainActor.run {
-                    self.activityIndicator.stopAnimating()
-                    self.navigateToChats()
+                    self.generateQRCode(sessionId: session.id)
+                    self.connectWebSocket(sessionId: session.id)
                 }
             } catch {
                 await MainActor.run {
                     self.activityIndicator.stopAnimating()
-                    self.loginButton.isEnabled = true
-                    self.usernameTextField.isEnabled = true
-
-                    let errorMessage: String
-                    if case let APIError.serverError(message) = error {
-                        errorMessage = message
-                    } else {
-                        errorMessage = "Не удалось войти. Проверьте имя пользователя."
-                    }
-
-                    self.showAlert(message: errorMessage)
+                    self.statusLabel.text = "Ошибка создания сессии"
+                    self.showAlert(message: "Не удалось создать сессию: \(error.localizedDescription)")
                 }
             }
         }
+    }
+
+    private func generateQRCode(sessionId: String) {
+        let qrString = "https://t.me/interesnoitochka_bot?start=auth_\(sessionId)"
+
+        guard let filter = CIFilter(name: "CIQRCodeGenerator") else { return }
+        let data = qrString.data(using: .ascii)
+        filter.setValue(data, forKey: "inputMessage")
+        filter.setValue("H", forKey: "inputCorrectionLevel")
+
+        guard let ciImage = filter.outputImage else { return }
+
+        let transform = CGAffineTransform(scaleX: 10, y: 10)
+        let scaledImage = ciImage.transformed(by: transform)
+
+        let context = CIContext()
+        guard let cgImage = context.createCGImage(scaledImage, from: scaledImage.extent) else { return }
+
+        qrCodeImageView.image = UIImage(cgImage: cgImage)
+    }
+
+    private func connectWebSocket(sessionId: String) {
+        statusLabel.text = "Подключение к серверу..."
+        authWebSocket.connect(sessionId: sessionId)
+    }
+
+    @objc private func manualTokenButtonTapped() {
+        let alert = UIAlertController(title: "Ввод токена", message: "Введите access token", preferredStyle: .alert)
+        alert.addTextField { textField in
+            textField.placeholder = "Access Token"
+            textField.autocapitalizationType = .none
+            textField.autocorrectionType = .no
+        }
+        alert.addTextField { textField in
+            textField.placeholder = "Refresh Token"
+            textField.autocapitalizationType = .none
+            textField.autocorrectionType = .no
+        }
+
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Войти", style: .default) { [weak self] _ in
+            guard let accessToken = alert.textFields?[0].text, !accessToken.isEmpty,
+                  let refreshToken = alert.textFields?[1].text, !refreshToken.isEmpty else {
+                return
+            }
+
+            let tokens = TokenInfo(accessToken: accessToken, refreshToken: refreshToken, tokenType: "Bearer")
+            AuthManager.shared.saveTokens(tokens, userId: 0)
+            self?.navigateToChats()
+        })
+
+        present(alert, animated: true)
     }
 
     private func navigateToChats() {
@@ -178,5 +216,35 @@ class AuthViewController: UIViewController {
         let alert = UIAlertController(title: "Ошибка", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
+    }
+
+    deinit {
+        authWebSocket.disconnect()
+    }
+}
+
+extension AuthViewController: AuthWebSocketDelegate {
+    func authWebSocketDidConnect() {
+        statusLabel.text = "Отсканируйте QR-код в боте"
+        activityIndicator.stopAnimating()
+    }
+
+    func authWebSocketDidReceiveTokens(accessToken: String, refreshToken: String) {
+        authWebSocket.disconnect()
+
+        let tokens = TokenInfo(accessToken: accessToken, refreshToken: refreshToken, tokenType: "Bearer")
+        AuthManager.shared.saveTokens(tokens, userId: 0)
+
+        statusLabel.text = "Успешно! Переход к чатам..."
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.navigateToChats()
+        }
+    }
+
+    func authWebSocketDidFailWithError(_ error: Error) {
+        activityIndicator.stopAnimating()
+        statusLabel.text = "Ошибка подключения"
+        showAlert(message: "Ошибка WebSocket: \(error.localizedDescription)")
     }
 }
