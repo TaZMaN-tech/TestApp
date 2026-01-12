@@ -91,6 +91,15 @@ class AuthViewController: UIViewController {
         return button
     }()
 
+    private let testModeButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("🧪 Демо-режим (без авторизации)", for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        button.setTitleColor(.systemOrange, for: .normal)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -108,6 +117,7 @@ class AuthViewController: UIViewController {
         view.addSubview(qrCodeImageView)
         view.addSubview(statusLabel)
         view.addSubview(activityIndicator)
+        view.addSubview(testModeButton)
         view.addSubview(manualTokenButton)
 
         NSLayoutConstraint.activate([
@@ -139,7 +149,10 @@ class AuthViewController: UIViewController {
             activityIndicator.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 16),
             activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
 
-            manualTokenButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            testModeButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            testModeButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+
+            manualTokenButton.bottomAnchor.constraint(equalTo: testModeButton.topAnchor, constant: -12),
             manualTokenButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
     }
@@ -147,6 +160,23 @@ class AuthViewController: UIViewController {
     private func setupActions() {
         openTelegramButton.addTarget(self, action: #selector(openTelegramButtonTapped), for: .touchUpInside)
         manualTokenButton.addTarget(self, action: #selector(manualTokenButtonTapped), for: .touchUpInside)
+        testModeButton.addTarget(self, action: #selector(testModeButtonTapped), for: .touchUpInside)
+    }
+
+    @objc private func testModeButtonTapped() {
+        let alert = UIAlertController(
+            title: "Демо-режим",
+            message: "Войти в демо-режим для тестирования UI без реальной авторизации?\n\n⚠️ API запросы не будут работать",
+            preferredStyle: .alert
+        )
+
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Войти в демо", style: .default) { [weak self] _ in
+            MockData.enableTestMode()
+            self?.navigateToChats()
+        })
+
+        present(alert, animated: true)
     }
 
     @objc private func openTelegramButtonTapped() {
