@@ -24,11 +24,34 @@ class AuthViewController: UIViewController {
 
     private let subtitleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Отсканируйте QR-код в Telegram боте"
+        label.text = "Войдите через Telegram бота"
         label.font = UIFont.systemFont(ofSize: 16, weight: .regular)
         label.textAlignment = .center
         label.textColor = .secondaryLabel
         label.numberOfLines = 0
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+
+    private let openTelegramButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Открыть Telegram", for: .normal)
+        button.backgroundColor = .systemBlue
+        button.setTitleColor(.white, for: .normal)
+        button.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .semibold)
+        button.layer.cornerRadius = 12
+        button.isEnabled = false
+        button.alpha = 0.5
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
+    private let orLabel: UILabel = {
+        let label = UILabel()
+        label.text = "или отсканируйте QR-код"
+        label.font = UIFont.systemFont(ofSize: 14)
+        label.textAlignment = .center
+        label.textColor = .tertiaryLabel
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -80,13 +103,15 @@ class AuthViewController: UIViewController {
 
         view.addSubview(logoLabel)
         view.addSubview(subtitleLabel)
+        view.addSubview(openTelegramButton)
+        view.addSubview(orLabel)
         view.addSubview(qrCodeImageView)
         view.addSubview(statusLabel)
         view.addSubview(activityIndicator)
         view.addSubview(manualTokenButton)
 
         NSLayoutConstraint.activate([
-            logoLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -220),
+            logoLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -250),
             logoLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
             logoLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
 
@@ -94,10 +119,18 @@ class AuthViewController: UIViewController {
             subtitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
             subtitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
 
-            qrCodeImageView.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 32),
+            openTelegramButton.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 32),
+            openTelegramButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
+            openTelegramButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
+            openTelegramButton.heightAnchor.constraint(equalToConstant: 54),
+
+            orLabel.topAnchor.constraint(equalTo: openTelegramButton.bottomAnchor, constant: 24),
+            orLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+
+            qrCodeImageView.topAnchor.constraint(equalTo: orLabel.bottomAnchor, constant: 16),
             qrCodeImageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            qrCodeImageView.widthAnchor.constraint(equalToConstant: 250),
-            qrCodeImageView.heightAnchor.constraint(equalToConstant: 250),
+            qrCodeImageView.widthAnchor.constraint(equalToConstant: 200),
+            qrCodeImageView.heightAnchor.constraint(equalToConstant: 200),
 
             statusLabel.topAnchor.constraint(equalTo: qrCodeImageView.bottomAnchor, constant: 24),
             statusLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
@@ -112,7 +145,27 @@ class AuthViewController: UIViewController {
     }
 
     private func setupActions() {
+        openTelegramButton.addTarget(self, action: #selector(openTelegramButtonTapped), for: .touchUpInside)
         manualTokenButton.addTarget(self, action: #selector(manualTokenButtonTapped), for: .touchUpInside)
+    }
+
+    @objc private func openTelegramButtonTapped() {
+        guard let sessionId = currentSessionId else {
+            showAlert(message: "Сессия еще не создана. Подождите...")
+            return
+        }
+
+        let botURL = "https://t.me/interesnoitochka_bot?start=auth_\(sessionId)"
+
+        if let url = URL(string: botURL) {
+            UIApplication.shared.open(url) { success in
+                if !success {
+                    DispatchQueue.main.async {
+                        self.showAlert(message: "Не удалось открыть Telegram. Используйте QR-код.")
+                    }
+                }
+            }
+        }
     }
 
     private func checkAuthentication() {
@@ -225,8 +278,10 @@ class AuthViewController: UIViewController {
 
 extension AuthViewController: AuthWebSocketDelegate {
     func authWebSocketDidConnect() {
-        statusLabel.text = "Отсканируйте QR-код в боте"
+        statusLabel.text = "Нажмите кнопку выше или отсканируйте QR-код"
         activityIndicator.stopAnimating()
+        openTelegramButton.isEnabled = true
+        openTelegramButton.alpha = 1.0
     }
 
     func authWebSocketDidReceiveTokens(accessToken: String, refreshToken: String) {
