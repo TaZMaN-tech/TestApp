@@ -71,7 +71,10 @@ class APIService {
                     let decoder = JSONDecoder()
                     return try decoder.decode(T.self, from: data)
                 } catch {
-                    print("Decoding error: \(error)")
+                    print("❌ Decoding error: \(error)")
+                    if let jsonString = String(data: data, encoding: .utf8) {
+                        print("📄 Response JSON: \(jsonString)")
+                    }
                     throw APIError.decodingError
                 }
             case 401:
@@ -80,6 +83,7 @@ class APIService {
                 throw APIError.notFound
             default:
                 if let errorString = String(data: data, encoding: .utf8) {
+                    print("❌ Server error: \(errorString)")
                     throw APIError.serverError(errorString)
                 }
                 throw APIError.serverError("Unknown error")
@@ -245,13 +249,59 @@ class APIService {
     }
 
     func getBotURL(sessionId: String) async throws -> String {
-        struct BotURLResponse: Codable {
-            let url: String
+        guard var urlComponents = URLComponents(string: "\(baseURL)/bot_url") else {
+            throw APIError.invalidURL
         }
 
-        let queryItems = [URLQueryItem(name: "session_id", value: sessionId)]
-        let response: BotURLResponse = try await request(endpoint: "/bot_url", queryItems: queryItems)
-        return response.url
+        urlComponents.queryItems = [URLQueryItem(name: "session_id", value: sessionId)]
+
+        guard let url = urlComponents.url else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+
+        // Добавляем X-Session-ID заголовок
+        if let token = AuthManager.shared.accessToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        } else if let sessionIdHeader = AuthManager.shared.anonymousSessionId {
+            request.setValue(sessionIdHeader, forHTTPHeaderField: "X-Session-ID")
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            if let errorString = String(data: data, encoding: .utf8) {
+                print("❌ /bot_url error: \(errorString)")
+            }
+            throw APIError.serverError("Failed to get bot URL")
+        }
+
+        // Попробуем декодировать как JSON объект
+        if let jsonString = String(data: data, encoding: .utf8) {
+            print("📄 /bot_url response: \(jsonString)")
+
+            // Попробуем разные форматы
+            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let botUrl = json["url"] as? String {
+                return botUrl
+            }
+
+            // Если это просто строка в кавычках
+            if let url = try? JSONDecoder().decode(String.self, from: data) {
+                return url
+            }
+
+            // Если это просто текст без JSON
+            return jsonString.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "\"", with: "")
+        }
+
+        throw APIError.decodingError
     }
 }
 
