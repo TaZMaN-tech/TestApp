@@ -243,17 +243,21 @@ extension AuthViewController: AuthWebSocketDelegate {
 
         Task {
             do {
+                // Сохраняем токены временно, чтобы сделать запрос
+                let tokens = TokenInfo(accessToken: accessToken, refreshToken: refreshToken, tokenType: "Bearer")
+                AuthManager.shared.saveTokens(tokens, userId: 0) // Временный userId
+
                 // Получаем информацию о текущем пользователе
-                let currentUser: User = try await APIService.shared.request(endpoint: "/users/me", method: "GET")
+                let currentUser: User = try await APIService.shared.getCurrentUser()
 
                 await MainActor.run {
-                    let tokens = TokenInfo(accessToken: accessToken, refreshToken: refreshToken, tokenType: "Bearer")
+                    // Теперь сохраняем токены с правильным userId
                     AuthManager.shared.saveTokens(tokens, userId: currentUser.id)
                     self.navigateToChats()
                 }
             } catch {
                 await MainActor.run {
-                    self.showAlert(message: "Ошибка получения данных пользователя")
+                    self.showAlert(message: "Ошибка получения данных пользователя: \(error.localizedDescription)")
                 }
             }
         }

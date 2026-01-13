@@ -181,6 +181,68 @@ class APIService {
 
         let _: EmptyResponse = try await request(endpoint: "/chats/\(chatId)/read", method: "POST", body: body)
     }
+
+    func moveChatToInbox(chatId: Int) async throws {
+        let _: EmptyResponse = try await request(endpoint: "/chats/\(chatId)/inbox", method: "PUT")
+    }
+
+    func moveChatToArchive(chatId: Int) async throws {
+        let _: EmptyResponse = try await request(endpoint: "/chats/\(chatId)/archive", method: "PUT")
+    }
+
+    func sendTypingIndicator(chatId: Int) async throws {
+        let _: EmptyResponse = try await request(endpoint: "/chats/\(chatId)/typing", method: "POST")
+    }
+
+    func uploadFiles(files: [Data], fileNames: [String]) async throws -> [MessageFile] {
+        // Multipart form data upload
+        let boundary = UUID().uuidString
+        var body = Data()
+
+        for (index, fileData) in files.enumerated() {
+            let fileName = fileNames.indices.contains(index) ? fileNames[index] : "file\(index)"
+            body.append("--\(boundary)\r\n".data(using: .utf8)!)
+            body.append("Content-Disposition: form-data; name=\"files\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+            body.append("Content-Type: application/octet-stream\r\n\r\n".data(using: .utf8)!)
+            body.append(fileData)
+            body.append("\r\n".data(using: .utf8)!)
+        }
+        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+
+        guard let url = URL(string: "\(baseURL)/chats/messages/upload") else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+        if let token = AuthManager.shared.accessToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        request.httpBody = body
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+            throw APIError.serverError("Upload failed")
+        }
+
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        return try decoder.decode([MessageFile].self, from: data)
+    }
+
+    func searchUsers(query: String) async throws -> [User] {
+        struct UserSearchResponse: Codable {
+            let users: [User]
+        }
+
+        let queryItems = [URLQueryItem(name: "q", value: query)]
+        let response: UserSearchResponse = try await request(endpoint: "/users/search", queryItems: queryItems)
+        return response.users
+    }
 }
 
 struct EmptyResponse: Codable {}
