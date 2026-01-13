@@ -12,66 +12,67 @@ class AuthViewController: UIViewController {
     private let authWebSocket = AuthWebSocketService()
     private var currentSessionId: String?
 
-    private let logoLabel: UILabel = {
+    // Иконка логотипа (заглушка - будет синяя звезда с иконками)
+    private let logoImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFit
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        // TODO: Добавить настоящую иконку из Figma
+        imageView.backgroundColor = DesignSystem.Colors.accentBlue
+        imageView.layer.cornerRadius = 100
+        return imageView
+    }()
+
+    private let titleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Интересно и точка"
-        label.font = UIFont.systemFont(ofSize: 28, weight: .bold)
+        label.text = "Вход в учетную запись"
+        label.font = DesignSystem.Fonts.systemFont(size: 28, weight: .bold)
         label.textAlignment = .center
-        label.textColor = .label
+        label.textColor = DesignSystem.Colors.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
 
     private let subtitleLabel: UILabel = {
         let label = UILabel()
-        label.text = "Войдите через Telegram бота"
-        label.font = UIFont.systemFont(ofSize: 16, weight: .regular)
+        label.text = "Вход в приложение осуществляется\nчерез аккаунт в Telegram"
+        label.font = DesignSystem.Fonts.body
         label.textAlignment = .center
-        label.textColor = .secondaryLabel
+        label.textColor = DesignSystem.Colors.secondaryText
         label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
 
-    private let openTelegramButton: UIButton = {
+    private let loginButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Открыть Telegram", for: .normal)
-        button.backgroundColor = .systemBlue
-        button.setTitleColor(.white, for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .semibold)
-        button.layer.cornerRadius = 12
-        button.isEnabled = false
-        button.alpha = 0.5
+        button.setTitle("Войти в приложение", for: .normal)
+        button.backgroundColor = DesignSystem.Colors.accentBlue
+        button.setTitleColor(DesignSystem.Colors.primaryText, for: .normal)
+        button.titleLabel?.font = DesignSystem.Fonts.systemFont(size: 17, weight: .semibold)
+        button.layer.cornerRadius = DesignSystem.CornerRadius.medium
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
 
-    private let orLabel: UILabel = {
-        let label = UILabel()
-        label.text = "или отсканируйте QR-код"
-        label.font = UIFont.systemFont(ofSize: 14)
-        label.textAlignment = .center
-        label.textColor = .tertiaryLabel
-        label.translatesAutoresizingMaskIntoConstraints = false
-        return label
+    private let registerButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Зарегистрироваться", for: .normal)
+        button.backgroundColor = DesignSystem.Colors.secondaryBackground
+        button.setTitleColor(DesignSystem.Colors.primaryText, for: .normal)
+        button.titleLabel?.font = DesignSystem.Fonts.systemFont(size: 17, weight: .semibold)
+        button.layer.cornerRadius = DesignSystem.CornerRadius.medium
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
     }()
 
-    private let qrCodeImageView: UIImageView = {
-        let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFit
-        imageView.backgroundColor = .white
-        imageView.layer.cornerRadius = 12
-        imageView.clipsToBounds = true
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        return imageView
-    }()
-
-    private let statusLabel: UILabel = {
+    private let disclaimerLabel: UILabel = {
         let label = UILabel()
-        label.text = "Ожидание подключения..."
-        label.font = UIFont.systemFont(ofSize: 14)
+        label.text = "При входе или регистрации вы соглашаетесь\nс нашей Политикой использования"
+        label.font = DesignSystem.Fonts.footnote
         label.textAlignment = .center
-        label.textColor = .secondaryLabel
+        label.textColor = DesignSystem.Colors.secondaryText
+        label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -79,25 +80,9 @@ class AuthViewController: UIViewController {
     private let activityIndicator: UIActivityIndicatorView = {
         let indicator = UIActivityIndicatorView(style: .large)
         indicator.hidesWhenStopped = true
+        indicator.color = DesignSystem.Colors.accentBlue
         indicator.translatesAutoresizingMaskIntoConstraints = false
         return indicator
-    }()
-
-    private let manualTokenButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("Ввести токен вручную", for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 14)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
-    }()
-
-    private let testModeButton: UIButton = {
-        let button = UIButton(type: .system)
-        button.setTitle("🧪 Демо-режим (без авторизации)", for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .medium)
-        button.setTitleColor(.systemOrange, for: .normal)
-        button.translatesAutoresizingMaskIntoConstraints = false
-        return button
     }()
 
     override func viewDidLoad() {
@@ -108,101 +93,66 @@ class AuthViewController: UIViewController {
     }
 
     private func setupUI() {
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = DesignSystem.Colors.primaryBackground
 
-        view.addSubview(logoLabel)
+        view.addSubview(logoImageView)
+        view.addSubview(titleLabel)
         view.addSubview(subtitleLabel)
-        view.addSubview(openTelegramButton)
-        view.addSubview(orLabel)
-        view.addSubview(qrCodeImageView)
-        view.addSubview(statusLabel)
+        view.addSubview(loginButton)
+        view.addSubview(registerButton)
+        view.addSubview(disclaimerLabel)
         view.addSubview(activityIndicator)
-        view.addSubview(testModeButton)
-        view.addSubview(manualTokenButton)
 
         NSLayoutConstraint.activate([
-            logoLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -250),
-            logoLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            logoLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
+            logoImageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            logoImageView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 100),
+            logoImageView.widthAnchor.constraint(equalToConstant: 200),
+            logoImageView.heightAnchor.constraint(equalToConstant: 200),
 
-            subtitleLabel.topAnchor.constraint(equalTo: logoLabel.bottomAnchor, constant: 12),
-            subtitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            subtitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
+            titleLabel.topAnchor.constraint(equalTo: logoImageView.bottomAnchor, constant: 60),
+            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DesignSystem.Spacing.huge),
+            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DesignSystem.Spacing.huge),
 
-            openTelegramButton.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 32),
-            openTelegramButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            openTelegramButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
-            openTelegramButton.heightAnchor.constraint(equalToConstant: 54),
+            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: DesignSystem.Spacing.medium),
+            subtitleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DesignSystem.Spacing.huge),
+            subtitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DesignSystem.Spacing.huge),
 
-            orLabel.topAnchor.constraint(equalTo: openTelegramButton.bottomAnchor, constant: 24),
-            orLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            loginButton.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 40),
+            loginButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DesignSystem.Spacing.large),
+            loginButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DesignSystem.Spacing.large),
+            loginButton.heightAnchor.constraint(equalToConstant: 56),
 
-            qrCodeImageView.topAnchor.constraint(equalTo: orLabel.bottomAnchor, constant: 16),
-            qrCodeImageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            qrCodeImageView.widthAnchor.constraint(equalToConstant: 200),
-            qrCodeImageView.heightAnchor.constraint(equalToConstant: 200),
+            registerButton.topAnchor.constraint(equalTo: loginButton.bottomAnchor, constant: DesignSystem.Spacing.medium),
+            registerButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DesignSystem.Spacing.large),
+            registerButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DesignSystem.Spacing.large),
+            registerButton.heightAnchor.constraint(equalToConstant: 56),
 
-            statusLabel.topAnchor.constraint(equalTo: qrCodeImageView.bottomAnchor, constant: 24),
-            statusLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            statusLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
+            disclaimerLabel.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -DesignSystem.Spacing.large),
+            disclaimerLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: DesignSystem.Spacing.huge),
+            disclaimerLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DesignSystem.Spacing.huge),
 
-            activityIndicator.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 16),
             activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-
-            testModeButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
-            testModeButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-
-            manualTokenButton.bottomAnchor.constraint(equalTo: testModeButton.topAnchor, constant: -12),
-            manualTokenButton.centerXAnchor.constraint(equalTo: view.centerXAnchor)
+            activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
     }
 
     private func setupActions() {
-        openTelegramButton.addTarget(self, action: #selector(openTelegramButtonTapped), for: .touchUpInside)
-        manualTokenButton.addTarget(self, action: #selector(manualTokenButtonTapped), for: .touchUpInside)
-        testModeButton.addTarget(self, action: #selector(testModeButtonTapped), for: .touchUpInside)
+        loginButton.addTarget(self, action: #selector(loginButtonTapped), for: .touchUpInside)
+        registerButton.addTarget(self, action: #selector(registerButtonTapped), for: .touchUpInside)
     }
 
-    @objc private func testModeButtonTapped() {
-        let alert = UIAlertController(
-            title: "Демо-режим",
-            message: "Войти в демо-режим для тестирования UI без реальной авторизации?\n\n⚠️ API запросы не будут работать",
-            preferredStyle: .alert
-        )
-
-        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Войти в демо", style: .default) { [weak self] _ in
-            MockData.enableTestMode()
-            self?.navigateToChats()
-        })
-
-        present(alert, animated: true)
+    @objc private func loginButtonTapped() {
+        startAuthFlow()
     }
 
-    @objc private func openTelegramButtonTapped() {
-        guard let sessionId = currentSessionId else {
-            showAlert(message: "Сессия еще не создана. Подождите...")
-            return
-        }
-
-        let botURL = "https://t.me/interesnoitochka_bot?start=auth_\(sessionId)"
-
-        if let url = URL(string: botURL) {
-            UIApplication.shared.open(url) { success in
-                if !success {
-                    DispatchQueue.main.async {
-                        self.showAlert(message: "Не удалось открыть Telegram. Используйте QR-код.")
-                    }
-                }
-            }
-        }
+    @objc private func registerButtonTapped() {
+        // Регистрация - тот же флоу что и вход
+        startAuthFlow()
     }
 
     private func checkAuthentication() {
         if AuthManager.shared.isAuthenticated {
             navigateToChats()
-        } else {
-            startAuthFlow()
         }
     }
 
@@ -210,14 +160,14 @@ class AuthViewController: UIViewController {
         // Сначала проверим, есть ли уже анонимная сессия
         if let existingSessionId = AuthManager.shared.anonymousSessionId {
             currentSessionId = existingSessionId
-            generateQRCode(sessionId: existingSessionId)
-            connectWebSocket(sessionId: existingSessionId)
+            openTelegramBot(sessionId: existingSessionId)
             return
         }
 
         // Если нет - создаём новую анонимную сессию
         activityIndicator.startAnimating()
-        statusLabel.text = "Создание сессии..."
+        loginButton.isEnabled = false
+        registerButton.isEnabled = false
 
         authWebSocket.delegate = self
 
@@ -230,81 +180,39 @@ class AuthViewController: UIViewController {
                 AuthManager.shared.saveAnonymousSession(session)
 
                 await MainActor.run {
-                    self.generateQRCode(sessionId: session.id)
+                    self.activityIndicator.stopAnimating()
+                    self.loginButton.isEnabled = true
+                    self.registerButton.isEnabled = true
+                    self.openTelegramBot(sessionId: session.id)
                     self.connectWebSocket(sessionId: session.id)
                 }
             } catch {
                 await MainActor.run {
                     self.activityIndicator.stopAnimating()
-                    self.statusLabel.text = "Ошибка создания сессии"
+                    self.loginButton.isEnabled = true
+                    self.registerButton.isEnabled = true
                     self.showAlert(message: "Не удалось создать сессию: \(error.localizedDescription)")
                 }
             }
         }
     }
 
-    private func generateQRCode(sessionId: String) {
-        let qrString = "https://t.me/interesnoitochka_bot?start=auth_\(sessionId)"
+    private func openTelegramBot(sessionId: String) {
+        let botURL = "https://t.me/interesnoitochka_bot?start=auth_\(sessionId)"
 
-        guard let filter = CIFilter(name: "CIQRCodeGenerator") else { return }
-        let data = qrString.data(using: .ascii)
-        filter.setValue(data, forKey: "inputMessage")
-        filter.setValue("H", forKey: "inputCorrectionLevel")
-
-        guard let ciImage = filter.outputImage else { return }
-
-        let transform = CGAffineTransform(scaleX: 10, y: 10)
-        let scaledImage = ciImage.transformed(by: transform)
-
-        let context = CIContext()
-        guard let cgImage = context.createCGImage(scaledImage, from: scaledImage.extent) else { return }
-
-        qrCodeImageView.image = UIImage(cgImage: cgImage)
+        if let url = URL(string: botURL) {
+            UIApplication.shared.open(url) { success in
+                if !success {
+                    DispatchQueue.main.async {
+                        self.showAlert(message: "Не удалось открыть Telegram. Убедитесь, что приложение установлено.")
+                    }
+                }
+            }
+        }
     }
 
     private func connectWebSocket(sessionId: String) {
-        statusLabel.text = "Подключение к серверу..."
         authWebSocket.connect(sessionId: sessionId)
-    }
-
-    @objc private func manualTokenButtonTapped() {
-        let alert = UIAlertController(title: "Ввод токена", message: "Введите access token", preferredStyle: .alert)
-        alert.addTextField { textField in
-            textField.placeholder = "Access Token"
-            textField.autocapitalizationType = .none
-            textField.autocorrectionType = .no
-        }
-        alert.addTextField { textField in
-            textField.placeholder = "Refresh Token"
-            textField.autocapitalizationType = .none
-            textField.autocorrectionType = .no
-        }
-
-        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Войти", style: .default) { [weak self] _ in
-            guard let accessToken = alert.textFields?[0].text, !accessToken.isEmpty,
-                  let refreshToken = alert.textFields?[1].text, !refreshToken.isEmpty else {
-                return
-            }
-
-            let tokens = TokenInfo(accessToken: accessToken, refreshToken: refreshToken, tokenType: "Bearer")
-            AuthManager.shared.saveTokens(tokens, userId: 0)
-            self?.navigateToChats()
-        })
-
-        present(alert, animated: true)
-    }
-
-    private func navigateToChats() {
-        let chatsVC = ChatsViewController()
-        let navController = UINavigationController(rootViewController: chatsVC)
-        navController.modalPresentationStyle = .fullScreen
-
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let window = windowScene.windows.first {
-            window.rootViewController = navController
-            UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: {})
-        }
     }
 
     private func showAlert(message: String) {
@@ -313,35 +221,47 @@ class AuthViewController: UIViewController {
         present(alert, animated: true)
     }
 
-    deinit {
-        authWebSocket.disconnect()
+    private func navigateToChats() {
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first {
+            let chatsVC = ChatsViewController()
+            let navController = UINavigationController(rootViewController: chatsVC)
+            window.rootViewController = navController
+            UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: {})
+        }
     }
 }
 
+// MARK: - AuthWebSocketDelegate
 extension AuthViewController: AuthWebSocketDelegate {
     func authWebSocketDidConnect() {
-        statusLabel.text = "Нажмите кнопку выше или отсканируйте QR-код"
-        activityIndicator.stopAnimating()
-        openTelegramButton.isEnabled = true
-        openTelegramButton.alpha = 1.0
+        print("✅ WebSocket подключен, ожидание токенов...")
     }
 
     func authWebSocketDidReceiveTokens(accessToken: String, refreshToken: String) {
-        authWebSocket.disconnect()
+        print("✅ Получены токены авторизации")
 
-        let tokens = TokenInfo(accessToken: accessToken, refreshToken: refreshToken, tokenType: "Bearer")
-        AuthManager.shared.saveTokens(tokens, userId: 0)
+        Task {
+            do {
+                // Получаем информацию о текущем пользователе
+                let currentUser: User = try await APIService.shared.request(endpoint: "/users/me", method: "GET")
 
-        statusLabel.text = "Успешно! Переход к чатам..."
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.navigateToChats()
+                await MainActor.run {
+                    let tokens = TokenInfo(accessToken: accessToken, refreshToken: refreshToken, tokenType: "Bearer")
+                    AuthManager.shared.saveTokens(tokens, userId: currentUser.id)
+                    self.navigateToChats()
+                }
+            } catch {
+                await MainActor.run {
+                    self.showAlert(message: "Ошибка получения данных пользователя")
+                }
+            }
         }
     }
 
     func authWebSocketDidFailWithError(_ error: Error) {
-        activityIndicator.stopAnimating()
-        statusLabel.text = "Ошибка подключения"
-        showAlert(message: "Ошибка WebSocket: \(error.localizedDescription)")
+        DispatchQueue.main.async {
+            self.showAlert(message: "Ошибка WebSocket: \(error.localizedDescription)")
+        }
     }
 }
