@@ -119,6 +119,13 @@ class ChatsViewController: UIViewController {
     private func loadCurrentUser() {
         Task {
             do {
+                // Проверяем наличие токена
+                if let token = AuthManager.shared.accessToken {
+                    print("✅ Access token exists: \(token.prefix(20))...")
+                } else {
+                    print("❌ No access token found!")
+                }
+
                 let currentUser: User = try await APIService.shared.getCurrentUser()
                 await MainActor.run {
                     let username = currentUser.username ?? currentUser.firstName ?? "Пользователь"
@@ -126,8 +133,27 @@ class ChatsViewController: UIViewController {
                 }
             } catch {
                 print("❌ Ошибка загрузки данных пользователя: \(error)")
+
+                // Если unauthorized - возможно токен истек, пробуем выйти
+                if case APIError.unauthorized = error {
+                    await MainActor.run {
+                        self.showTokenExpiredAlert()
+                    }
+                }
             }
         }
+    }
+
+    private func showTokenExpiredAlert() {
+        let alert = UIAlertController(
+            title: "Сессия истекла",
+            message: "Пожалуйста, войдите заново",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "Войти", style: .default) { [weak self] _ in
+            self?.logout()
+        })
+        present(alert, animated: true)
     }
 
     private func loadChats() {
