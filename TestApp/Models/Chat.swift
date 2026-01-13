@@ -49,9 +49,12 @@ struct Chat: Codable, Identifiable {
 
 struct ChatListResponse: Codable {
     let chats: [Chat]
-    let total: Int
-    let offset: Int
-    let limit: Int
+    let count: Int
+
+    enum CodingKeys: String, CodingKey {
+        case chats
+        case count
+    }
 }
 
 struct ChatResponse: Codable {
