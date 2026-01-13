@@ -13,6 +13,7 @@ struct DesignSystem {
         // Text colors
         static let primaryText = UIColor(hex: "#ffffff")
         static let secondaryText = UIColor(hex: "#858693")
+        static let tertiaryText = UIColor(hex: "#54555b")
         static let placeholderText = UIColor(hex: "#54555b")
 
         // Accent colors
