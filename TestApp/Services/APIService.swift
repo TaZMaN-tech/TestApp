@@ -45,8 +45,13 @@ class APIService {
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
+        // Добавляем токен авторизации если есть
         if let token = AuthManager.shared.accessToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        // Если токена нет, но есть анонимная сессия, добавляем её
+        else if let sessionId = AuthManager.shared.anonymousSessionId {
+            request.setValue(sessionId, forHTTPHeaderField: "X-Session-ID")
         }
 
         if let body = body {

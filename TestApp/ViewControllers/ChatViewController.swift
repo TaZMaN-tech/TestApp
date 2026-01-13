@@ -18,7 +18,7 @@ class ChatViewController: UIViewController {
         table.dataSource = self
         table.register(MessageTableViewCell.self, forCellReuseIdentifier: MessageTableViewCell.identifier)
         table.separatorStyle = .none
-        table.backgroundColor = .systemBackground
+        table.backgroundColor = DesignSystem.Colors.primaryBackground
         table.keyboardDismissMode = .interactive
         table.transform = CGAffineTransform(scaleX: 1, y: -1)
         table.translatesAutoresizingMaskIntoConstraints = false
@@ -27,21 +27,27 @@ class ChatViewController: UIViewController {
 
     private let inputContainerView: UIView = {
         let view = UIView()
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = DesignSystem.Colors.primaryBackground
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
 
     private let messageTextField: UITextField = {
         let textField = UITextField()
-        textField.placeholder = "Сообщение..."
-        textField.borderStyle = .roundedRect
-        textField.backgroundColor = .secondarySystemBackground
-        textField.layer.cornerRadius = 20
+        textField.placeholder = "Написать сообщение"
+        textField.borderStyle = .none
+        textField.backgroundColor = DesignSystem.Colors.secondaryBackground
+        textField.textColor = DesignSystem.Colors.primaryText
+        textField.layer.cornerRadius = DesignSystem.CornerRadius.medium
         textField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 0))
         textField.leftViewMode = .always
         textField.rightView = UIView(frame: CGRect(x: 0, y: 0, width: 12, height: 0))
         textField.rightViewMode = .always
+        textField.font = DesignSystem.Fonts.body
+        textField.attributedPlaceholder = NSAttributedString(
+            string: "Написать сообщение",
+            attributes: [.foregroundColor: DesignSystem.Colors.placeholderText]
+        )
         textField.translatesAutoresizingMaskIntoConstraints = false
         return textField
     }()
@@ -49,7 +55,7 @@ class ChatViewController: UIViewController {
     private let sendButton: UIButton = {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "arrow.up.circle.fill"), for: .normal)
-        button.tintColor = .systemBlue
+        button.tintColor = DesignSystem.Colors.accentBlue
         button.contentVerticalAlignment = .fill
         button.contentHorizontalAlignment = .fill
         button.translatesAutoresizingMaskIntoConstraints = false
@@ -90,7 +96,16 @@ class ChatViewController: UIViewController {
 
     private func setupUI() {
         title = chat.displayName
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = DesignSystem.Colors.primaryBackground
+
+        // Настройка navigation bar
+        navigationController?.navigationBar.barTintColor = DesignSystem.Colors.primaryBackground
+        navigationController?.navigationBar.backgroundColor = DesignSystem.Colors.primaryBackground
+        navigationController?.navigationBar.titleTextAttributes = [
+            .foregroundColor: DesignSystem.Colors.primaryText,
+            .font: DesignSystem.Fonts.title
+        ]
+        navigationController?.navigationBar.tintColor = DesignSystem.Colors.primaryText
 
         view.addSubview(tableView)
         view.addSubview(inputContainerView)
@@ -99,7 +114,7 @@ class ChatViewController: UIViewController {
         inputContainerView.addSubview(activityIndicator)
 
         let separator = UIView()
-        separator.backgroundColor = .separator
+        separator.backgroundColor = DesignSystem.Colors.separator
         separator.translatesAutoresizingMaskIntoConstraints = false
         inputContainerView.addSubview(separator)
 

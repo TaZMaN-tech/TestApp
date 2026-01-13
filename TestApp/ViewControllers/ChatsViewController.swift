@@ -36,12 +36,16 @@ class ChatsViewController: UIViewController {
     private let emptyLabel: UILabel = {
         let label = UILabel()
         label.text = "Нет чатов"
-        label.textColor = .secondaryLabel
-        label.font = UIFont.systemFont(ofSize: 18, weight: .medium)
+        label.textColor = DesignSystem.Colors.secondaryText
+        label.font = DesignSystem.Fonts.title
         label.textAlignment = .center
         label.isHidden = true
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
+    }()
+
+    private let activityIndicatorStyle: UIActivityIndicatorView.Style = {
+        return .large
     }()
 
     override func viewDidLoad() {
@@ -53,12 +57,26 @@ class ChatsViewController: UIViewController {
 
     private func setupUI() {
         title = "Чаты"
-        view.backgroundColor = .systemBackground
-        navigationController?.navigationBar.prefersLargeTitles = true
+        view.backgroundColor = DesignSystem.Colors.primaryBackground
 
-        let logoutButton = UIBarButtonItem(title: "Выйти", style: .plain, target: self, action: #selector(logoutTapped))
+        // Настройка navigation bar
+        navigationController?.navigationBar.prefersLargeTitles = false
+        navigationController?.navigationBar.barTintColor = DesignSystem.Colors.primaryBackground
+        navigationController?.navigationBar.backgroundColor = DesignSystem.Colors.primaryBackground
+        navigationController?.navigationBar.titleTextAttributes = [
+            .foregroundColor: DesignSystem.Colors.primaryText,
+            .font: DesignSystem.Fonts.title
+        ]
+
+        // Настройка table view с цветами из дизайна
+        tableView.backgroundColor = DesignSystem.Colors.primaryBackground
+        tableView.separatorColor = DesignSystem.Colors.separator
+
         let searchUserButton = UIBarButtonItem(image: UIImage(systemName: "magnifyingglass"), style: .plain, target: self, action: #selector(searchUserTapped))
-        navigationItem.rightBarButtonItems = [logoutButton, searchUserButton]
+        let newChatButton = UIBarButtonItem(image: UIImage(systemName: "square.and.pencil"), style: .plain, target: self, action: #selector(newChatTapped))
+        searchUserButton.tintColor = DesignSystem.Colors.primaryText
+        newChatButton.tintColor = DesignSystem.Colors.primaryText
+        navigationItem.rightBarButtonItems = [newChatButton, searchUserButton]
 
         view.addSubview(tableView)
         view.addSubview(activityIndicator)
@@ -111,6 +129,12 @@ class ChatsViewController: UIViewController {
                 }
             }
         }
+    }
+
+    @objc private func newChatTapped() {
+        // В будущем здесь будет переход на экран создания нового чата из Figma
+        // Пока используем временное решение
+        searchUserTapped()
     }
 
     @objc private func searchUserTapped() {
