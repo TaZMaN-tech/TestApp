@@ -18,7 +18,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window = UIWindow(windowScene: windowScene)
 
         let rootViewController: UIViewController
-        if AuthManager.shared.isAuthenticated {
+
+        // Check if onboarding has been completed
+        let hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+
+        if !hasCompletedOnboarding {
+            // Show onboarding on first launch
+            rootViewController = OnboardingViewController()
+        } else if AuthManager.shared.isAuthenticated {
             let chatsVC = ChatsViewController()
             rootViewController = UINavigationController(rootViewController: chatsVC)
         } else {
