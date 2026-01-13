@@ -88,8 +88,14 @@ class ChatsHeaderView: UIView {
         userStack.alignment = .center
         userStack.translatesAutoresizingMaskIntoConstraints = false
 
+        // Стек для кнопок справа
+        let buttonsStack = UIStackView(arrangedSubviews: [searchButton, newChatButton])
+        buttonsStack.axis = .horizontal
+        buttonsStack.spacing = DesignSystem.Spacing.small
+        buttonsStack.translatesAutoresizingMaskIntoConstraints = false
+
         addSubview(userStack)
-        addSubview(editButton)
+        addSubview(buttonsStack)
 
         NSLayoutConstraint.activate([
             avatarImageView.widthAnchor.constraint(equalToConstant: 40),
@@ -101,19 +107,28 @@ class ChatsHeaderView: UIView {
             userStack.leadingAnchor.constraint(equalTo: leadingAnchor, constant: DesignSystem.Spacing.large),
             userStack.centerYAnchor.constraint(equalTo: centerYAnchor),
 
-            editButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -DesignSystem.Spacing.large),
-            editButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            editButton.widthAnchor.constraint(equalToConstant: 44),
-            editButton.heightAnchor.constraint(equalToConstant: 44)
+            searchButton.widthAnchor.constraint(equalToConstant: 44),
+            searchButton.heightAnchor.constraint(equalToConstant: 44),
+
+            newChatButton.widthAnchor.constraint(equalToConstant: 44),
+            newChatButton.heightAnchor.constraint(equalToConstant: 44),
+
+            buttonsStack.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -DesignSystem.Spacing.medium),
+            buttonsStack.centerYAnchor.constraint(equalTo: centerYAnchor)
         ])
     }
 
     private func setupActions() {
-        editButton.addTarget(self, action: #selector(editButtonTapped), for: .touchUpInside)
+        searchButton.addTarget(self, action: #selector(searchButtonTapped), for: .touchUpInside)
+        newChatButton.addTarget(self, action: #selector(newChatButtonTapped), for: .touchUpInside)
     }
 
-    @objc private func editButtonTapped() {
-        delegate?.chatsHeaderDidTapEdit()
+    @objc private func searchButtonTapped() {
+        delegate?.chatsHeaderDidTapSearch()
+    }
+
+    @objc private func newChatButtonTapped() {
+        delegate?.chatsHeaderDidTapNewChat()
     }
 
     func configure(username: String, avatarURL: String?) {
