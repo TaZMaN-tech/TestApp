@@ -243,6 +243,16 @@ class APIService {
         let response: UserSearchResponse = try await request(endpoint: "/users/search", queryItems: queryItems)
         return response.users
     }
+
+    func getBotURL(sessionId: String) async throws -> String {
+        struct BotURLResponse: Codable {
+            let url: String
+        }
+
+        let queryItems = [URLQueryItem(name: "session_id", value: sessionId)]
+        let response: BotURLResponse = try await request(endpoint: "/bot_url", queryItems: queryItems)
+        return response.url
+    }
 }
 
 struct EmptyResponse: Codable {}
