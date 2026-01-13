@@ -52,6 +52,22 @@ class ChatViewController: UIViewController {
         return textField
     }()
 
+    private let attachButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "paperclip"), for: .normal)
+        button.tintColor = DesignSystem.Colors.secondaryText
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
+    private let emojiButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "face.smiling"), for: .normal)
+        button.tintColor = DesignSystem.Colors.secondaryText
+        button.translatesAutoresizingMaskIntoConstraints = false
+        return button
+    }()
+
     private let sendButton: UIButton = {
         let button = UIButton(type: .system)
         button.setImage(UIImage(systemName: "arrow.up.circle.fill"), for: .normal)
@@ -107,7 +123,9 @@ class ChatViewController: UIViewController {
 
         view.addSubview(tableView)
         view.addSubview(inputContainerView)
+        inputContainerView.addSubview(attachButton)
         inputContainerView.addSubview(messageTextField)
+        inputContainerView.addSubview(emojiButton)
         inputContainerView.addSubview(sendButton)
         inputContainerView.addSubview(activityIndicator)
 
@@ -134,12 +152,26 @@ class ChatViewController: UIViewController {
             separator.trailingAnchor.constraint(equalTo: inputContainerView.trailingAnchor),
             separator.heightAnchor.constraint(equalToConstant: 0.5),
 
-            messageTextField.leadingAnchor.constraint(equalTo: inputContainerView.leadingAnchor, constant: 12),
+            // Attach button (слева)
+            attachButton.leadingAnchor.constraint(equalTo: inputContainerView.leadingAnchor, constant: 12),
+            attachButton.centerYAnchor.constraint(equalTo: messageTextField.centerYAnchor),
+            attachButton.widthAnchor.constraint(equalToConstant: 28),
+            attachButton.heightAnchor.constraint(equalToConstant: 28),
+
+            // Text field (по центру)
+            messageTextField.leadingAnchor.constraint(equalTo: attachButton.trailingAnchor, constant: 8),
             messageTextField.topAnchor.constraint(equalTo: inputContainerView.topAnchor, constant: 8),
             messageTextField.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
             messageTextField.heightAnchor.constraint(equalToConstant: 40),
-            messageTextField.trailingAnchor.constraint(equalTo: sendButton.leadingAnchor, constant: -8),
+            messageTextField.trailingAnchor.constraint(equalTo: emojiButton.leadingAnchor, constant: -8),
 
+            // Emoji button
+            emojiButton.trailingAnchor.constraint(equalTo: sendButton.leadingAnchor, constant: -8),
+            emojiButton.centerYAnchor.constraint(equalTo: messageTextField.centerYAnchor),
+            emojiButton.widthAnchor.constraint(equalToConstant: 28),
+            emojiButton.heightAnchor.constraint(equalToConstant: 28),
+
+            // Send button (справа)
             sendButton.trailingAnchor.constraint(equalTo: inputContainerView.trailingAnchor, constant: -12),
             sendButton.centerYAnchor.constraint(equalTo: messageTextField.centerYAnchor),
             sendButton.widthAnchor.constraint(equalToConstant: 36),
@@ -225,7 +257,39 @@ class ChatViewController: UIViewController {
     }
 
     private func setupActions() {
+        attachButton.addTarget(self, action: #selector(attachButtonTapped), for: .touchUpInside)
+        emojiButton.addTarget(self, action: #selector(emojiButtonTapped), for: .touchUpInside)
         sendButton.addTarget(self, action: #selector(sendButtonTapped), for: .touchUpInside)
+    }
+
+    @objc private func attachButtonTapped() {
+        let alert = UIAlertController(title: "Прикрепить", message: nil, preferredStyle: .actionSheet)
+
+        alert.addAction(UIAlertAction(title: "Фото или видео", style: .default) { [weak self] _ in
+            self?.showImagePicker()
+        })
+
+        alert.addAction(UIAlertAction(title: "Файл", style: .default) { [weak self] _ in
+            self?.showDocumentPicker()
+        })
+
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        present(alert, animated: true)
+    }
+
+    @objc private func emojiButtonTapped() {
+        // TODO: Реализовать выбор эмодзи
+        print("Emoji button tapped")
+    }
+
+    private func showImagePicker() {
+        // TODO: Реализовать UIImagePickerController
+        print("Show image picker")
+    }
+
+    private func showDocumentPicker() {
+        // TODO: Реализовать UIDocumentPickerViewController
+        print("Show document picker")
     }
 
     @objc private func keyboardWillShow(_ notification: Notification) {
