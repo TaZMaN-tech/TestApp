@@ -23,7 +23,7 @@ class APIService {
 
     private init() {}
 
-    private func request<T: Decodable>(
+    func request<T: Decodable>(
         endpoint: String,
         method: String = "GET",
         body: Data? = nil,

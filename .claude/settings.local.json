@@ -5,7 +5,9 @@
       "Bash(python3:*)",
       "Bash(ls:*)",
       "Bash(xcodebuild:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(find:*)"
     ]
   }
 }
