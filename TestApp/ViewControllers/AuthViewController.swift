@@ -183,15 +183,19 @@ class AuthViewController: UIViewController {
 
                 currentSessionId = sessionId
 
-                // Получаем правильный URL бота от API
-                let botURL = try await APIService.shared.getBotURL(sessionId: sessionId)
-                print("📱 URL бота: \(botURL)")
+                // Получаем базовый URL бота от API
+                let baseBotURL = try await APIService.shared.getBotURL(sessionId: sessionId)
+                print("📱 Базовый URL бота: \(baseBotURL)")
+
+                // Добавляем параметр start с session_id
+                let fullBotURL = "\(baseBotURL)?start=\(sessionId)"
+                print("📱 Полный URL бота с session_id: \(fullBotURL)")
 
                 await MainActor.run {
                     self.activityIndicator.stopAnimating()
                     self.loginButton.isEnabled = true
                     self.registerButton.isEnabled = true
-                    self.openTelegramBotWithURL(botURL)
+                    self.openTelegramBotWithURL(fullBotURL)
                     self.connectWebSocket(sessionId: sessionId)
                 }
             } catch {
