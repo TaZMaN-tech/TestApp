@@ -126,8 +126,8 @@ class APIService {
     }
 
     func getCurrentUser() async throws -> User {
-        let endpoint = "/auth/jwt/you"
-        return try await request(endpoint: endpoint, method: "POST")
+        let endpoint = "/users/my"
+        return try await request(endpoint: endpoint, method: "GET")
     }
 
     func getChats(offset: Int = 0, limit: Int = 20, search: String? = nil) async throws -> ChatListResponse {
