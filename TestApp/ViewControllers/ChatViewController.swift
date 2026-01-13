@@ -95,17 +95,15 @@ class ChatViewController: UIViewController {
     }
 
     private func setupUI() {
-        title = chat.displayName
         view.backgroundColor = DesignSystem.Colors.primaryBackground
 
         // Настройка navigation bar
         navigationController?.navigationBar.barTintColor = DesignSystem.Colors.primaryBackground
         navigationController?.navigationBar.backgroundColor = DesignSystem.Colors.primaryBackground
-        navigationController?.navigationBar.titleTextAttributes = [
-            .foregroundColor: DesignSystem.Colors.primaryText,
-            .font: DesignSystem.Fonts.title
-        ]
         navigationController?.navigationBar.tintColor = DesignSystem.Colors.primaryText
+
+        // Создаём кастомный title view с аватаром
+        setupCustomTitleView()
 
         view.addSubview(tableView)
         view.addSubview(inputContainerView)
@@ -150,6 +148,75 @@ class ChatViewController: UIViewController {
             activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             activityIndicator.centerYAnchor.constraint(equalTo: tableView.centerYAnchor)
         ])
+    }
+
+    private func setupCustomTitleView() {
+        let titleView = UIView()
+        titleView.translatesAutoresizingMaskIntoConstraints = false
+
+        let avatarImageView = UIImageView()
+        avatarImageView.contentMode = .scaleAspectFill
+        avatarImageView.clipsToBounds = true
+        avatarImageView.layer.cornerRadius = 20
+        avatarImageView.backgroundColor = DesignSystem.Colors.secondaryBackground
+        avatarImageView.translatesAutoresizingMaskIntoConstraints = false
+
+        let nameLabel = UILabel()
+        nameLabel.text = chat.displayName
+        nameLabel.font = DesignSystem.Fonts.title
+        nameLabel.textColor = DesignSystem.Colors.primaryText
+        nameLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        let statusLabel = UILabel()
+        statusLabel.text = "онлайн"
+        statusLabel.font = DesignSystem.Fonts.footnote
+        statusLabel.textColor = DesignSystem.Colors.secondaryText
+        statusLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        titleView.addSubview(avatarImageView)
+        titleView.addSubview(nameLabel)
+        titleView.addSubview(statusLabel)
+
+        NSLayoutConstraint.activate([
+            avatarImageView.leadingAnchor.constraint(equalTo: titleView.leadingAnchor),
+            avatarImageView.centerYAnchor.constraint(equalTo: titleView.centerYAnchor),
+            avatarImageView.widthAnchor.constraint(equalToConstant: 40),
+            avatarImageView.heightAnchor.constraint(equalToConstant: 40),
+
+            nameLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: DesignSystem.Spacing.small),
+            nameLabel.topAnchor.constraint(equalTo: titleView.topAnchor, constant: 4),
+            nameLabel.trailingAnchor.constraint(equalTo: titleView.trailingAnchor),
+
+            statusLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: DesignSystem.Spacing.small),
+            statusLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 2),
+            statusLabel.trailingAnchor.constraint(equalTo: titleView.trailingAnchor),
+
+            titleView.heightAnchor.constraint(equalToConstant: 44),
+            titleView.widthAnchor.constraint(equalToConstant: 200)
+        ])
+
+        navigationItem.titleView = titleView
+
+        // Загружаем аватар
+        if let avatarURL = chat.avatar ?? chat.otherParticipant?.avatar,
+           let url = URL(string: avatarURL) {
+            Task {
+                do {
+                    let (data, _) = try await URLSession.shared.data(from: url)
+                    if let image = UIImage(data: data) {
+                        await MainActor.run {
+                            avatarImageView.image = image
+                        }
+                    }
+                } catch {
+                    avatarImageView.image = UIImage(systemName: "person.circle.fill")
+                    avatarImageView.tintColor = DesignSystem.Colors.secondaryText
+                }
+            }
+        } else {
+            avatarImageView.image = UIImage(systemName: "person.circle.fill")
+            avatarImageView.tintColor = DesignSystem.Colors.secondaryText
+        }
     }
 
     private func setupKeyboardObservers() {
