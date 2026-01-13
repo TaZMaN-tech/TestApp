@@ -234,9 +234,8 @@ class AuthViewController: UIViewController {
     private func navigateToChats() {
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let window = windowScene.windows.first {
-            let chatsVC = ChatsViewController()
-            let navController = UINavigationController(rootViewController: chatsVC)
-            window.rootViewController = navController
+            let tabBarController = MainTabBarController()
+            window.rootViewController = tabBarController
             UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: {})
         }
     }

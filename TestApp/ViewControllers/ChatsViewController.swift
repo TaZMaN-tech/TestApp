@@ -278,6 +278,94 @@ extension ChatsViewController: UITableViewDelegate, UITableViewDataSource {
         let chatVC = ChatViewController(chat: chat)
         navigationController?.pushViewController(chatVC, animated: true)
     }
+
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let chat = isSearching ? filteredChats[indexPath.row] : chats[indexPath.row]
+
+        let moreAction = UIContextualAction(style: .normal, title: nil) { [weak self] _, _, completionHandler in
+            self?.showChatActions(for: chat)
+            completionHandler(true)
+        }
+        moreAction.image = UIImage(systemName: "ellipsis")
+        moreAction.backgroundColor = DesignSystem.Colors.secondaryBackground
+
+        let archiveAction = UIContextualAction(style: .normal, title: nil) { [weak self] _, _, completionHandler in
+            self?.archiveChat(chat)
+            completionHandler(true)
+        }
+        archiveAction.image = UIImage(systemName: "archivebox")
+        archiveAction.backgroundColor = .systemOrange
+
+        let deleteAction = UIContextualAction(style: .destructive, title: nil) { [weak self] _, _, completionHandler in
+            self?.deleteChat(chat)
+            completionHandler(true)
+        }
+        deleteAction.image = UIImage(systemName: "trash")
+
+        let configuration = UISwipeActionsConfiguration(actions: [deleteAction, archiveAction, moreAction])
+        configuration.performsFirstActionWithFullSwipe = false
+        return configuration
+    }
+
+    private func showChatActions(for chat: Chat) {
+        let bottomSheet = ChatActionsBottomSheet(chat: chat)
+        bottomSheet.delegate = self
+        present(bottomSheet, animated: true)
+    }
+
+    private func archiveChat(_ chat: Chat) {
+        Task {
+            do {
+                try await APIService.shared.moveChatToArchive(chatId: chat.id)
+                await MainActor.run {
+                    if let index = self.chats.firstIndex(where: { $0.id == chat.id }) {
+                        self.chats.remove(at: index)
+                        self.filteredChats = self.chats
+                        self.tableView.reloadData()
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.showError(error)
+                }
+            }
+        }
+    }
+
+    private func deleteChat(_ chat: Chat) {
+        let alert = UIAlertController(title: "Удалить чат?", message: "Это действие нельзя отменить", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Удалить", style: .destructive) { [weak self] _ in
+            // TODO: Implement delete chat API method
+            if let index = self?.chats.firstIndex(where: { $0.id == chat.id }) {
+                self?.chats.remove(at: index)
+                self?.filteredChats = self?.chats ?? []
+                self?.tableView.reloadData()
+            }
+        })
+        present(alert, animated: true)
+    }
+}
+
+// MARK: - ChatActionsBottomSheetDelegate
+extension ChatsViewController: ChatActionsBottomSheetDelegate {
+    func didSelectArchive(chat: Chat) {
+        archiveChat(chat)
+    }
+
+    func didSelectPin(chat: Chat) {
+        // TODO: Implement pin functionality
+        print("Pin chat: \(chat.id)")
+    }
+
+    func didSelectDelete(chat: Chat) {
+        deleteChat(chat)
+    }
+
+    func didSelectMute(chat: Chat) {
+        // TODO: Implement mute functionality
+        print("Mute chat: \(chat.id)")
+    }
 }
 
 extension ChatsViewController: UISearchResultsUpdating {

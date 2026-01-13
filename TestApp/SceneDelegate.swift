@@ -26,8 +26,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             // Show onboarding on first launch
             rootViewController = OnboardingViewController()
         } else if AuthManager.shared.isAuthenticated {
-            let chatsVC = ChatsViewController()
-            rootViewController = UINavigationController(rootViewController: chatsVC)
+            rootViewController = MainTabBarController()
         } else {
             rootViewController = AuthViewController()
         }
