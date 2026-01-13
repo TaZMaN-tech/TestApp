@@ -157,14 +157,6 @@ class AuthViewController: UIViewController {
     }
 
     private func startAuthFlow() {
-        // Сначала проверим, есть ли уже анонимная сессия
-        if let existingSessionId = AuthManager.shared.anonymousSessionId {
-            currentSessionId = existingSessionId
-            openTelegramBot(sessionId: existingSessionId)
-            return
-        }
-
-        // Если нет - создаём новую анонимную сессию
         activityIndicator.startAnimating()
         loginButton.isEnabled = false
         registerButton.isEnabled = false
@@ -173,34 +165,48 @@ class AuthViewController: UIViewController {
 
         Task {
             do {
-                let session = try await APIService.shared.createSession()
-                currentSessionId = session.id
+                // Сначала проверим, есть ли уже анонимная сессия
+                var sessionId: String
 
-                // Сохраняем анонимную сессию
-                AuthManager.shared.saveAnonymousSession(session)
+                if let existingSessionId = AuthManager.shared.anonymousSessionId {
+                    sessionId = existingSessionId
+                    print("📱 Используем существующую сессию: \(sessionId)")
+                } else {
+                    // Создаём новую анонимную сессию
+                    let session = try await APIService.shared.createSession()
+                    sessionId = session.id
+
+                    // Сохраняем анонимную сессию
+                    AuthManager.shared.saveAnonymousSession(session)
+                    print("📱 Создана новая сессия: \(sessionId)")
+                }
+
+                currentSessionId = sessionId
+
+                // Получаем правильный URL бота от API
+                let botURL = try await APIService.shared.getBotURL(sessionId: sessionId)
+                print("📱 URL бота: \(botURL)")
 
                 await MainActor.run {
                     self.activityIndicator.stopAnimating()
                     self.loginButton.isEnabled = true
                     self.registerButton.isEnabled = true
-                    self.openTelegramBot(sessionId: session.id)
-                    self.connectWebSocket(sessionId: session.id)
+                    self.openTelegramBotWithURL(botURL)
+                    self.connectWebSocket(sessionId: sessionId)
                 }
             } catch {
                 await MainActor.run {
                     self.activityIndicator.stopAnimating()
                     self.loginButton.isEnabled = true
                     self.registerButton.isEnabled = true
-                    self.showAlert(message: "Не удалось создать сессию: \(error.localizedDescription)")
+                    self.showAlert(message: "Ошибка: \(error.localizedDescription)")
                 }
             }
         }
     }
 
-    private func openTelegramBot(sessionId: String) {
-        let botURL = "https://t.me/interesnoitochka_bot?start=auth_\(sessionId)"
-
-        if let url = URL(string: botURL) {
+    private func openTelegramBotWithURL(_ urlString: String) {
+        if let url = URL(string: urlString) {
             UIApplication.shared.open(url) { success in
                 if !success {
                     DispatchQueue.main.async {
