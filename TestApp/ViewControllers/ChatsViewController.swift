@@ -12,7 +12,10 @@ class ChatsViewController: UIViewController {
     private var chats: [Chat] = []
     private var filteredChats: [Chat] = []
     private var isSearching = false
+    private var currentTab: ChatsTab = .messages
 
+    private let headerView = ChatsHeaderView()
+    private let tabsView = ChatsTabsView()
     private let searchController = UISearchController(searchResultsController: nil)
 
     private lazy var tableView: UITableView = {
@@ -56,34 +59,40 @@ class ChatsViewController: UIViewController {
     }
 
     private func setupUI() {
-        title = "Чаты"
         view.backgroundColor = DesignSystem.Colors.primaryBackground
 
-        // Настройка navigation bar
-        navigationController?.navigationBar.prefersLargeTitles = false
-        navigationController?.navigationBar.barTintColor = DesignSystem.Colors.primaryBackground
-        navigationController?.navigationBar.backgroundColor = DesignSystem.Colors.primaryBackground
-        navigationController?.navigationBar.titleTextAttributes = [
-            .foregroundColor: DesignSystem.Colors.primaryText,
-            .font: DesignSystem.Fonts.title
-        ]
+        // Скрываем стандартный navigation bar
+        navigationController?.setNavigationBarHidden(true, animated: false)
 
         // Настройка table view с цветами из дизайна
         tableView.backgroundColor = DesignSystem.Colors.primaryBackground
         tableView.separatorColor = DesignSystem.Colors.separator
 
-        let searchUserButton = UIBarButtonItem(image: UIImage(systemName: "magnifyingglass"), style: .plain, target: self, action: #selector(searchUserTapped))
-        let newChatButton = UIBarButtonItem(image: UIImage(systemName: "square.and.pencil"), style: .plain, target: self, action: #selector(newChatTapped))
-        searchUserButton.tintColor = DesignSystem.Colors.primaryText
-        newChatButton.tintColor = DesignSystem.Colors.primaryText
-        navigationItem.rightBarButtonItems = [newChatButton, searchUserButton]
+        // Настройка header и tabs
+        headerView.delegate = self
+        headerView.translatesAutoresizingMaskIntoConstraints = false
 
+        tabsView.delegate = self
+        tabsView.translatesAutoresizingMaskIntoConstraints = false
+
+        view.addSubview(headerView)
+        view.addSubview(tabsView)
         view.addSubview(tableView)
         view.addSubview(activityIndicator)
         view.addSubview(emptyLabel)
 
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: view.topAnchor),
+            headerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            headerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            headerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            headerView.heightAnchor.constraint(equalToConstant: 60),
+
+            tabsView.topAnchor.constraint(equalTo: headerView.bottomAnchor),
+            tabsView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            tabsView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            tabsView.heightAnchor.constraint(equalToConstant: 44),
+
+            tableView.topAnchor.constraint(equalTo: tabsView.bottomAnchor),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
@@ -94,6 +103,9 @@ class ChatsViewController: UIViewController {
             emptyLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             emptyLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
         ])
+
+        // Загружаем данные пользователя для header
+        loadCurrentUser()
     }
 
     private func setupSearchController() {
@@ -102,6 +114,20 @@ class ChatsViewController: UIViewController {
         searchController.searchBar.placeholder = "Поиск чатов"
         navigationItem.searchController = searchController
         definesPresentationContext = true
+    }
+
+    private func loadCurrentUser() {
+        Task {
+            do {
+                let currentUser: User = try await APIService.shared.request(endpoint: "/users/me", method: "GET")
+                await MainActor.run {
+                    let username = currentUser.username ?? currentUser.firstName ?? "Пользователь"
+                    self.headerView.configure(username: username, avatarURL: currentUser.avatar)
+                }
+            } catch {
+                print("❌ Ошибка загрузки данных пользователя: \(error)")
+            }
+        }
     }
 
     private func loadChats() {
@@ -132,9 +158,9 @@ class ChatsViewController: UIViewController {
     }
 
     @objc private func newChatTapped() {
-        // В будущем здесь будет переход на экран создания нового чата из Figma
-        // Пока используем временное решение
-        searchUserTapped()
+        let newChatVC = NewChatViewController()
+        let navController = UINavigationController(rootViewController: newChatVC)
+        present(navController, animated: true)
     }
 
     @objc private func searchUserTapped() {
@@ -267,6 +293,37 @@ extension ChatsViewController: UISearchResultsUpdating {
         filteredChats = chats.filter { chat in
             chat.displayName.lowercased().contains(searchText.lowercased())
         }
+        tableView.reloadData()
+    }
+}
+
+// MARK: - ChatsHeaderViewDelegate
+extension ChatsViewController: ChatsHeaderViewDelegate {
+    func chatsHeaderDidTapEdit() {
+        let alert = UIAlertController(title: "Меню", message: nil, preferredStyle: .actionSheet)
+        alert.addAction(UIAlertAction(title: "Профиль", style: .default))
+        alert.addAction(UIAlertAction(title: "Настройки", style: .default))
+        alert.addAction(UIAlertAction(title: "Выйти", style: .destructive) { [weak self] _ in
+            self?.logout()
+        })
+        alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
+        present(alert, animated: true)
+    }
+
+    func chatsHeaderDidTapSearch() {
+        searchUserTapped()
+    }
+
+    func chatsHeaderDidTapNewChat() {
+        newChatTapped()
+    }
+}
+
+// MARK: - ChatsTabsViewDelegate
+extension ChatsViewController: ChatsTabsViewDelegate {
+    func chatsTabsViewDidSelectTab(_ tab: ChatsTab) {
+        currentTab = tab
+        // TODO: Фильтровать чаты по табу (архив/обычные)
         tableView.reloadData()
     }
 }
