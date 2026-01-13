@@ -207,6 +207,15 @@ class AuthViewController: UIViewController {
     }
 
     private func startAuthFlow() {
+        // Сначала проверим, есть ли уже анонимная сессия
+        if let existingSessionId = AuthManager.shared.anonymousSessionId {
+            currentSessionId = existingSessionId
+            generateQRCode(sessionId: existingSessionId)
+            connectWebSocket(sessionId: existingSessionId)
+            return
+        }
+
+        // Если нет - создаём новую анонимную сессию
         activityIndicator.startAnimating()
         statusLabel.text = "Создание сессии..."
 
@@ -216,6 +225,9 @@ class AuthViewController: UIViewController {
             do {
                 let session = try await APIService.shared.createSession()
                 currentSessionId = session.id
+
+                // Сохраняем анонимную сессию
+                AuthManager.shared.saveAnonymousSession(session)
 
                 await MainActor.run {
                     self.generateQRCode(sessionId: session.id)

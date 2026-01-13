@@ -12,14 +12,14 @@ class MessageTableViewCell: UITableViewCell {
 
     private let bubbleView: UIView = {
         let view = UIView()
-        view.layer.cornerRadius = 18
+        view.layer.cornerRadius = DesignSystem.CornerRadius.medium
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
 
     private let messageLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 16)
+        label.font = DesignSystem.Fonts.body
         label.numberOfLines = 0
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
@@ -27,8 +27,8 @@ class MessageTableViewCell: UITableViewCell {
 
     private let timeLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 12)
-        label.textColor = .secondaryLabel
+        label.font = DesignSystem.Fonts.footnote
+        label.textColor = DesignSystem.Colors.secondaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -89,13 +89,15 @@ class MessageTableViewCell: UITableViewCell {
         if message.isIncoming {
             leadingConstraint.isActive = true
             trailingConstraint.isActive = false
-            bubbleView.backgroundColor = .secondarySystemBackground
-            messageLabel.textColor = .label
+            bubbleView.backgroundColor = DesignSystem.Colors.incomingMessageBackground
+            messageLabel.textColor = DesignSystem.Colors.primaryText
+            timeLabel.textColor = DesignSystem.Colors.secondaryText
         } else {
             leadingConstraint.isActive = false
             trailingConstraint.isActive = true
-            bubbleView.backgroundColor = .systemBlue
-            messageLabel.textColor = .white
+            bubbleView.backgroundColor = DesignSystem.Colors.outgoingMessageBackground
+            messageLabel.textColor = DesignSystem.Colors.primaryText
+            timeLabel.textColor = DesignSystem.Colors.primaryText.withAlphaComponent(0.7)
         }
     }
 

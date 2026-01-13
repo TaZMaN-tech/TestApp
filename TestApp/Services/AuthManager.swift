@@ -13,6 +13,8 @@ class AuthManager {
     private let accessTokenKey = "accessToken"
     private let refreshTokenKey = "refreshToken"
     private let userIdKey = "userId"
+    private let anonymousSessionIdKey = "anonymousSessionId"
+    private let sessionExpiresAtKey = "sessionExpiresAt"
 
     private init() {}
 
@@ -40,19 +42,65 @@ class AuthManager {
         }
     }
 
+    // Анонимная сессия
+    var anonymousSessionId: String? {
+        get {
+            // Проверяем, не истекла ли сессия
+            if let expiresAt = sessionExpiresAt, Date() >= expiresAt {
+                clearAnonymousSession()
+                return nil
+            }
+            return UserDefaults.standard.string(forKey: anonymousSessionIdKey)
+        }
+        set { UserDefaults.standard.set(newValue, forKey: anonymousSessionIdKey) }
+    }
+
+    var sessionExpiresAt: Date? {
+        get { UserDefaults.standard.object(forKey: sessionExpiresAtKey) as? Date }
+        set { UserDefaults.standard.set(newValue, forKey: sessionExpiresAtKey) }
+    }
+
     var isAuthenticated: Bool {
         return accessToken != nil
+    }
+
+    var hasAnonymousSession: Bool {
+        return anonymousSessionId != nil
     }
 
     func saveTokens(_ tokens: TokenInfo, userId: Int) {
         accessToken = tokens.accessToken
         refreshToken = tokens.refreshToken
         currentUserId = userId
+        // При успешной авторизации удаляем анонимную сессию
+        clearAnonymousSession()
+    }
+
+    func saveAnonymousSession(_ session: SessionResponse) {
+        anonymousSessionId = session.id
+
+        // Вычисляем дату истечения
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let expiresAt = formatter.date(from: session.expiresAt) {
+            sessionExpiresAt = expiresAt
+        }
+    }
+
+    func clearAnonymousSession() {
+        anonymousSessionId = nil
+        sessionExpiresAt = nil
     }
 
     func clearTokens() {
         accessToken = nil
         refreshToken = nil
         currentUserId = nil
+        // Анонимную сессию не удаляем - она может быть нужна для повторной авторизации
+    }
+
+    func clearAll() {
+        clearTokens()
+        clearAnonymousSession()
     }
 }

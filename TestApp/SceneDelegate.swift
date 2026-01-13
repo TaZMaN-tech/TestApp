@@ -27,6 +27,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         window?.rootViewController = rootViewController
         window?.makeKeyAndVisible()
+
+        // Инициализируем анонимную сессию при первом запуске
+        Task {
+            await SessionManager.shared.initializeAnonymousSessionIfNeeded()
+        }
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {
@@ -49,6 +54,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneWillEnterForeground(_ scene: UIScene) {
         // Called as the scene transitions from the background to the foreground.
         // Use this method to undo the changes made on entering the background.
+
+        // Проверяем и обновляем анонимную сессию если истекла
+        Task {
+            await SessionManager.shared.refreshAnonymousSessionIfExpired()
+        }
     }
 
     func sceneDidEnterBackground(_ scene: UIScene) {

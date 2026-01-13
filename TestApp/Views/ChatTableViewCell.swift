@@ -14,41 +14,41 @@ class ChatTableViewCell: UITableViewCell {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
-        imageView.layer.cornerRadius = 28
-        imageView.backgroundColor = .systemGray5
+        imageView.layer.cornerRadius = DesignSystem.Sizes.avatarSmall / 2
+        imageView.backgroundColor = DesignSystem.Colors.secondaryBackground
         imageView.translatesAutoresizingMaskIntoConstraints = false
         return imageView
     }()
 
     private let nameLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 17, weight: .semibold)
-        label.textColor = .label
+        label.font = DesignSystem.Fonts.bodyBold
+        label.textColor = DesignSystem.Colors.primaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
 
     private let messageLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 15)
-        label.textColor = .secondaryLabel
+        label.font = DesignSystem.Fonts.body
+        label.textColor = DesignSystem.Colors.secondaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
 
     private let timeLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 14)
-        label.textColor = .tertiaryLabel
+        label.font = DesignSystem.Fonts.caption
+        label.textColor = DesignSystem.Colors.secondaryText
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
 
     private let unreadBadge: UILabel = {
         let label = UILabel()
-        label.font = UIFont.systemFont(ofSize: 12, weight: .semibold)
-        label.textColor = .white
-        label.backgroundColor = .systemBlue
+        label.font = DesignSystem.Fonts.captionBold
+        label.textColor = DesignSystem.Colors.primaryText
+        label.backgroundColor = DesignSystem.Colors.accentBlue
         label.textAlignment = .center
         label.layer.cornerRadius = 10
         label.clipsToBounds = true
@@ -59,10 +59,10 @@ class ChatTableViewCell: UITableViewCell {
 
     private let onlineIndicator: UIView = {
         let view = UIView()
-        view.backgroundColor = .systemGreen
+        view.backgroundColor = DesignSystem.Colors.online
         view.layer.cornerRadius = 6
         view.layer.borderWidth = 2
-        view.layer.borderColor = UIColor.systemBackground.cgColor
+        view.layer.borderColor = DesignSystem.Colors.primaryBackground.cgColor
         view.isHidden = true
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
@@ -78,6 +78,9 @@ class ChatTableViewCell: UITableViewCell {
     }
 
     private func setupUI() {
+        backgroundColor = DesignSystem.Colors.primaryBackground
+        contentView.backgroundColor = DesignSystem.Colors.primaryBackground
+
         contentView.addSubview(avatarImageView)
         contentView.addSubview(nameLabel)
         contentView.addSubview(messageLabel)
@@ -86,29 +89,29 @@ class ChatTableViewCell: UITableViewCell {
         contentView.addSubview(onlineIndicator)
 
         NSLayoutConstraint.activate([
-            avatarImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            avatarImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: DesignSystem.Spacing.large),
             avatarImageView.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
-            avatarImageView.widthAnchor.constraint(equalToConstant: 56),
-            avatarImageView.heightAnchor.constraint(equalToConstant: 56),
+            avatarImageView.widthAnchor.constraint(equalToConstant: DesignSystem.Sizes.avatarSmall),
+            avatarImageView.heightAnchor.constraint(equalToConstant: DesignSystem.Sizes.avatarSmall),
 
             onlineIndicator.trailingAnchor.constraint(equalTo: avatarImageView.trailingAnchor),
             onlineIndicator.bottomAnchor.constraint(equalTo: avatarImageView.bottomAnchor),
             onlineIndicator.widthAnchor.constraint(equalToConstant: 12),
             onlineIndicator.heightAnchor.constraint(equalToConstant: 12),
 
-            nameLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 12),
-            nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
-            nameLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -8),
+            nameLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: DesignSystem.Spacing.medium),
+            nameLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: DesignSystem.Spacing.large),
+            nameLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -DesignSystem.Spacing.small),
 
-            messageLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: 12),
-            messageLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 4),
-            messageLabel.trailingAnchor.constraint(equalTo: unreadBadge.leadingAnchor, constant: -8),
+            messageLabel.leadingAnchor.constraint(equalTo: avatarImageView.trailingAnchor, constant: DesignSystem.Spacing.medium),
+            messageLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: DesignSystem.Spacing.tiny),
+            messageLabel.trailingAnchor.constraint(equalTo: unreadBadge.leadingAnchor, constant: -DesignSystem.Spacing.small),
 
-            timeLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            timeLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 16),
+            timeLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DesignSystem.Spacing.large),
+            timeLabel.topAnchor.constraint(equalTo: contentView.topAnchor, constant: DesignSystem.Spacing.large),
             timeLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 50),
 
-            unreadBadge.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            unreadBadge.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -DesignSystem.Spacing.large),
             unreadBadge.centerYAnchor.constraint(equalTo: messageLabel.centerYAnchor),
             unreadBadge.widthAnchor.constraint(greaterThanOrEqualToConstant: 20),
             unreadBadge.heightAnchor.constraint(equalToConstant: 20)
