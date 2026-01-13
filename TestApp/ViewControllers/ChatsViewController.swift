@@ -119,7 +119,7 @@ class ChatsViewController: UIViewController {
     private func loadCurrentUser() {
         Task {
             do {
-                let currentUser: User = try await APIService.shared.request(endpoint: "/users/me", method: "GET")
+                let currentUser: User = try await APIService.shared.getCurrentUser()
                 await MainActor.run {
                     let username = currentUser.username ?? currentUser.firstName ?? "Пользователь"
                     self.headerView.configure(username: username, avatarURL: currentUser.avatar)
