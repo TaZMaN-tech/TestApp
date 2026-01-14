@@ -105,9 +105,31 @@ class ChatViewController: UIViewController {
         setupWebSocket()
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // Скрываем TabBar при открытии чата
+        tabBarController?.tabBar.isHidden = true
+
+        // Показываем navigation bar
+        navigationController?.setNavigationBarHidden(false, animated: animated)
+        print("🔍 Navigation bar hidden: \(navigationController?.isNavigationBarHidden ?? true)")
+        print("🔍 Navigation item title view: \(navigationItem.titleView != nil)")
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        // Показываем TabBar при возврате к списку чатов
+        tabBarController?.tabBar.isHidden = false
+
+        // Отключаем WebSocket при выходе из чата
+        WebSocketService.shared.disconnect()
+        print("🔌 WebSocket disconnected on view disappear")
+    }
+
     deinit {
         NotificationCenter.default.removeObserver(self)
         WebSocketService.shared.delegate = nil
+        WebSocketService.shared.disconnect()
     }
 
     private func setupUI() {
@@ -153,26 +175,26 @@ class ChatViewController: UIViewController {
             separator.heightAnchor.constraint(equalToConstant: 0.5),
 
             // Attach button (слева)
-            attachButton.leadingAnchor.constraint(equalTo: inputContainerView.leadingAnchor, constant: 12),
+            attachButton.leadingAnchor.constraint(equalTo: inputContainerView.leadingAnchor, constant: 16),
             attachButton.centerYAnchor.constraint(equalTo: messageTextField.centerYAnchor),
             attachButton.widthAnchor.constraint(equalToConstant: 28),
             attachButton.heightAnchor.constraint(equalToConstant: 28),
 
             // Text field (по центру)
-            messageTextField.leadingAnchor.constraint(equalTo: attachButton.trailingAnchor, constant: 8),
-            messageTextField.topAnchor.constraint(equalTo: inputContainerView.topAnchor, constant: 8),
-            messageTextField.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+            messageTextField.leadingAnchor.constraint(equalTo: attachButton.trailingAnchor, constant: 12),
+            messageTextField.topAnchor.constraint(equalTo: inputContainerView.topAnchor, constant: 12),
+            messageTextField.bottomAnchor.constraint(equalTo: inputContainerView.bottomAnchor, constant: -12),
             messageTextField.heightAnchor.constraint(equalToConstant: 40),
-            messageTextField.trailingAnchor.constraint(equalTo: emojiButton.leadingAnchor, constant: -8),
+            messageTextField.trailingAnchor.constraint(equalTo: emojiButton.leadingAnchor, constant: -12),
 
             // Emoji button
-            emojiButton.trailingAnchor.constraint(equalTo: sendButton.leadingAnchor, constant: -8),
+            emojiButton.trailingAnchor.constraint(equalTo: sendButton.leadingAnchor, constant: -12),
             emojiButton.centerYAnchor.constraint(equalTo: messageTextField.centerYAnchor),
             emojiButton.widthAnchor.constraint(equalToConstant: 28),
             emojiButton.heightAnchor.constraint(equalToConstant: 28),
 
             // Send button (справа)
-            sendButton.trailingAnchor.constraint(equalTo: inputContainerView.trailingAnchor, constant: -12),
+            sendButton.trailingAnchor.constraint(equalTo: inputContainerView.trailingAnchor, constant: -16),
             sendButton.centerYAnchor.constraint(equalTo: messageTextField.centerYAnchor),
             sendButton.widthAnchor.constraint(equalToConstant: 36),
             sendButton.heightAnchor.constraint(equalToConstant: 36),
@@ -200,9 +222,23 @@ class ChatViewController: UIViewController {
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
 
         let statusLabel = UILabel()
-        statusLabel.text = "онлайн"
+        // Показываем статус онлайн из данных пользователя
+        if let otherUser = chat.otherParticipant {
+            if otherUser.isOnline == true {
+                statusLabel.text = "онлайн"
+                statusLabel.textColor = DesignSystem.Colors.accentBlue
+            } else if let lastSeen = otherUser.lastSeen {
+                statusLabel.text = formatLastSeen(lastSeen)
+                statusLabel.textColor = DesignSystem.Colors.secondaryText
+            } else {
+                statusLabel.text = "был(а) недавно"
+                statusLabel.textColor = DesignSystem.Colors.secondaryText
+            }
+        } else {
+            statusLabel.text = "онлайн"
+            statusLabel.textColor = DesignSystem.Colors.secondaryText
+        }
         statusLabel.font = DesignSystem.Fonts.footnote
-        statusLabel.textColor = DesignSystem.Colors.secondaryText
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
 
         titleView.addSubview(avatarImageView)
@@ -230,7 +266,7 @@ class ChatViewController: UIViewController {
         navigationItem.titleView = titleView
 
         // Загружаем аватар
-        if let avatarURL = chat.avatar ?? chat.otherParticipant?.avatar,
+        if let avatarURL = chat.avatarURL ?? chat.otherParticipant?.avatarURL,
            let url = URL(string: avatarURL) {
             Task {
                 do {
@@ -260,6 +296,22 @@ class ChatViewController: UIViewController {
         attachButton.addTarget(self, action: #selector(attachButtonTapped), for: .touchUpInside)
         emojiButton.addTarget(self, action: #selector(emojiButtonTapped), for: .touchUpInside)
         sendButton.addTarget(self, action: #selector(sendButtonTapped), for: .touchUpInside)
+
+        // Добавляем делегат для текстового поля чтобы отслеживать изменения
+        messageTextField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
+
+        // Изначально кнопка отправки неактивна
+        updateSendButtonState()
+    }
+
+    @objc private func textFieldDidChange() {
+        updateSendButtonState()
+    }
+
+    private func updateSendButtonState() {
+        let hasText = !(messageTextField.text?.trimmingCharacters(in: .whitespaces).isEmpty ?? true)
+        sendButton.isEnabled = hasText
+        sendButton.alpha = hasText ? 1.0 : 0.5
     }
 
     @objc private func attachButtonTapped() {
@@ -319,15 +371,31 @@ class ChatViewController: UIViewController {
                 let response = try await APIService.shared.getChatMessages(chatId: chat.id, limit: 100)
 
                 await MainActor.run {
+                    let oldCount = self.messages.count
                     self.messages = response.messages.reversed()
                     self.activityIndicator.stopAnimating()
                     self.tableView.reloadData()
+
+                    // Прокручиваем к последнему сообщению, если есть новые сообщения
+                    if !self.messages.isEmpty && self.messages.count > oldCount {
+                        let lastIndexPath = IndexPath(row: self.messages.count - 1, section: 0)
+                        self.tableView.scrollToRow(at: lastIndexPath, at: .bottom, animated: true)
+                    }
+
+                    print("✅ Loaded \(self.messages.count) messages")
+                    print("🔍 Current user ID: \(AuthManager.shared.currentUserId ?? -1)")
+
+                    // Отладка: проверяем первые 3 сообщения
+                    for (index, msg) in self.messages.prefix(3).enumerated() {
+                        print("   Message \(index): senderId=\(msg.senderId), isIncoming=\(msg.isIncoming), content=\(msg.content?.prefix(20) ?? "nil")")
+                    }
                 }
 
                 if let lastMessage = response.messages.first {
                     try? await APIService.shared.markChatAsRead(chatId: self.chat.id, lastMessageId: lastMessage.id)
                 }
             } catch {
+                print("❌ Failed to load messages: \(error)")
                 await MainActor.run {
                     self.activityIndicator.stopAnimating()
                     self.showError("Не удалось загрузить сообщения")
@@ -342,9 +410,12 @@ class ChatViewController: UIViewController {
         Task {
             do {
                 let subscription = try await APIService.shared.getChatSubscription(chatId: chat.id)
+                print("📡 Got WebSocket subscription - token: \(subscription.token.prefix(20))..., channel: \(subscription.channel)")
                 WebSocketService.shared.connect(subscription: subscription)
             } catch {
-                print("Failed to get WebSocket subscription: \(error)")
+                print("❌ Failed to get WebSocket subscription: \(error)")
+                // WebSocket не критичен для работы чата, продолжаем без него
+                // Сообщения всё равно будут обновляться при отправке
             }
         }
     }
@@ -360,6 +431,14 @@ class ChatViewController: UIViewController {
     private func sendMessage(text: String) {
         messageTextField.isEnabled = false
         sendButton.isEnabled = false
+        sendButton.setImage(nil, for: .normal)
+
+        // Добавляем activity indicator на кнопку
+        let activityIndicator = UIActivityIndicatorView(style: .medium)
+        activityIndicator.color = DesignSystem.Colors.accentBlue
+        activityIndicator.center = CGPoint(x: sendButton.bounds.width / 2, y: sendButton.bounds.height / 2)
+        activityIndicator.startAnimating()
+        sendButton.addSubview(activityIndicator)
 
         let request: MessageSendRequest
         if let recipientId = chat.otherParticipant?.id {
@@ -388,15 +467,30 @@ class ChatViewController: UIViewController {
 
         Task {
             do {
-                _ = try await APIService.shared.sendMessage(request: request)
+                let response = try await APIService.shared.sendMessage(request: request)
+                print("✅ Message sent successfully: \(response.messageId)")
 
                 await MainActor.run {
+                    // Удаляем activity indicator
+                    self.sendButton.subviews.forEach { if $0 is UIActivityIndicatorView { $0.removeFromSuperview() } }
+                    self.sendButton.setImage(UIImage(systemName: "arrow.up.circle.fill"), for: .normal)
+
                     self.messageTextField.text = ""
                     self.messageTextField.isEnabled = true
-                    self.sendButton.isEnabled = true
+
+                    // Обновляем состояние кнопки отправки
+                    self.updateSendButtonState()
+
+                    // Перезагружаем сообщения, чтобы показать отправленное
+                    self.loadMessages()
                 }
             } catch {
+                print("❌ Failed to send message: \(error)")
                 await MainActor.run {
+                    // Удаляем activity indicator и восстанавливаем иконку
+                    self.sendButton.subviews.forEach { if $0 is UIActivityIndicatorView { $0.removeFromSuperview() } }
+                    self.sendButton.setImage(UIImage(systemName: "arrow.up.circle.fill"), for: .normal)
+
                     self.messageTextField.isEnabled = true
                     self.sendButton.isEnabled = true
                     self.showError("Не удалось отправить сообщение")
@@ -409,6 +503,36 @@ class ChatViewController: UIViewController {
         let alert = UIAlertController(title: "Ошибка", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
+    }
+
+    private func formatLastSeen(_ lastSeen: String) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        guard let date = formatter.date(from: lastSeen) else {
+            return "был(а) недавно"
+        }
+
+        let now = Date()
+        let components = Calendar.current.dateComponents([.minute, .hour, .day], from: date, to: now)
+
+        if let days = components.day, days > 0 {
+            if days == 1 {
+                return "был(а) вчера"
+            } else if days < 7 {
+                return "был(а) \(days) дн. назад"
+            } else {
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "dd.MM.yyyy"
+                return "был(а) \(dateFormatter.string(from: date))"
+            }
+        } else if let hours = components.hour, hours > 0 {
+            return "был(а) \(hours) ч. назад"
+        } else if let minutes = components.minute, minutes > 0 {
+            return "был(а) \(minutes) мин. назад"
+        } else {
+            return "был(а) только что"
+        }
     }
 }
 
@@ -423,7 +547,11 @@ extension ChatViewController: UITableViewDelegate, UITableViewDataSource {
         }
 
         let message = messages[indexPath.row]
-        cell.configure(with: message)
+
+        // Передаём avatarURL для входящих сообщений
+        let senderAvatarURL = message.isIncoming ? (chat.avatarURL ?? chat.otherParticipant?.avatarURL) : nil
+
+        cell.configure(with: message, senderAvatarURL: senderAvatarURL)
         cell.transform = CGAffineTransform(scaleX: 1, y: -1)
         return cell
     }
@@ -431,21 +559,44 @@ extension ChatViewController: UITableViewDelegate, UITableViewDataSource {
 
 extension ChatViewController: WebSocketServiceDelegate {
     func webSocketDidConnect() {
-        print("WebSocket connected")
+        print("✅ WebSocket connected in ChatViewController for chat \(chat.id)")
     }
 
     func webSocketDidDisconnect(error: Error?) {
-        print("WebSocket disconnected: \(error?.localizedDescription ?? "unknown")")
+        print("❌ WebSocket disconnected in ChatViewController: \(error?.localizedDescription ?? "unknown")")
     }
 
     func webSocketDidReceiveMessage(_ message: Message) {
-        if message.chatId == chat.id {
-            messages.insert(message, at: 0)
-            tableView.insertRows(at: [IndexPath(row: 0, section: 0)], with: .automatic)
+        print("📨 ChatViewController received message: ID=\(message.id), chatId=\(message.chatId ?? -1), currentChatId=\(chat.id)")
+
+        // Если chatId не указан, или совпадает с текущим чатом
+        let shouldAdd = message.chatId == nil || message.chatId == chat.id
+
+        if shouldAdd {
+            print("✅ Message belongs to current chat, adding to UI")
+            print("   From: \(message.senderId), Content: \(message.content?.prefix(50) ?? "nil")")
+
+            DispatchQueue.main.async {
+                // Проверяем, что сообщение ещё не добавлено
+                if !self.messages.contains(where: { $0.id == message.id }) {
+                    // Добавляем сообщение в конец массива (список перевёрнут)
+                    self.messages.append(message)
+                    let newIndexPath = IndexPath(row: self.messages.count - 1, section: 0)
+                    self.tableView.insertRows(at: [newIndexPath], with: .automatic)
+
+                    // Прокручиваем к новому сообщению
+                    self.tableView.scrollToRow(at: newIndexPath, at: .bottom, animated: true)
+                    print("✅ Message added to table view successfully")
+                } else {
+                    print("⚠️ Message already exists in messages array, skipping")
+                }
+            }
 
             Task {
-                try? await APIService.shared.markChatAsRead(chatId: chat.id, lastMessageId: message.id)
+                try? await APIService.shared.markChatAsRead(chatId: self.chat.id, lastMessageId: message.id)
             }
+        } else {
+            print("⚠️ Message chatId (\(message.chatId ?? -1)) doesn't match current chat id (\(chat.id))")
         }
     }
 }

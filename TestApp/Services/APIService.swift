@@ -240,12 +240,26 @@ class APIService {
 
     func searchUsers(query: String) async throws -> [User] {
         struct UserSearchResponse: Codable {
-            let users: [User]
+            let total: Int
+            let count: Int
+            let items: [User]
         }
 
         let queryItems = [URLQueryItem(name: "q", value: query)]
         let response: UserSearchResponse = try await request(endpoint: "/users/search", queryItems: queryItems)
-        return response.users
+        return response.items
+    }
+
+    func searchUsersByTelegramUsername(telegramUsername: String) async throws -> [User] {
+        struct UserSearchResponse: Codable {
+            let total: Int
+            let count: Int
+            let items: [User]
+        }
+
+        let queryItems = [URLQueryItem(name: "telegram_username", value: telegramUsername)]
+        let response: UserSearchResponse = try await request(endpoint: "/users/search", queryItems: queryItems)
+        return response.items
     }
 
     func getBotURL(sessionId: String) async throws -> String {
