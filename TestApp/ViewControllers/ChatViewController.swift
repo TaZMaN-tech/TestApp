@@ -20,7 +20,6 @@ class ChatViewController: UIViewController {
         table.separatorStyle = .none
         table.backgroundColor = DesignSystem.Colors.primaryBackground
         table.keyboardDismissMode = .interactive
-        table.transform = CGAffineTransform(scaleX: 1, y: -1)
         table.translatesAutoresizingMaskIntoConstraints = false
         return table
     }()
@@ -114,6 +113,18 @@ class ChatViewController: UIViewController {
         navigationController?.setNavigationBarHidden(false, animated: animated)
         print("🔍 Navigation bar hidden: \(navigationController?.isNavigationBarHidden ?? true)")
         print("🔍 Navigation item title view: \(navigationItem.titleView != nil)")
+    }
+
+    private func adjustTableViewContentInset() {
+        let contentHeight = tableView.contentSize.height
+        let tableHeight = tableView.bounds.height
+
+        if contentHeight < tableHeight {
+            let inset = tableHeight - contentHeight
+            tableView.contentInset = UIEdgeInsets(top: inset, left: 0, bottom: 0, right: 0)
+        } else {
+            tableView.contentInset = .zero
+        }
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -374,12 +385,27 @@ class ChatViewController: UIViewController {
                     let oldCount = self.messages.count
                     self.messages = response.messages.reversed()
                     self.activityIndicator.stopAnimating()
+
+                    // Временно скрываем tableView чтобы избежать видимого "прыжка"
+                    self.tableView.alpha = 0
+
                     self.tableView.reloadData()
 
-                    // Прокручиваем к последнему сообщению, если есть новые сообщения
-                    if !self.messages.isEmpty && self.messages.count > oldCount {
+                    // Принудительно делаем layout чтобы получить правильный contentSize
+                    self.tableView.layoutIfNeeded()
+
+                    // Настраиваем contentInset чтобы прижать сообщения к низу
+                    self.adjustTableViewContentInset()
+
+                    // Прокручиваем к последнему сообщению без анимации
+                    if !self.messages.isEmpty {
                         let lastIndexPath = IndexPath(row: self.messages.count - 1, section: 0)
-                        self.tableView.scrollToRow(at: lastIndexPath, at: .bottom, animated: true)
+                        self.tableView.scrollToRow(at: lastIndexPath, at: .bottom, animated: false)
+                    }
+
+                    // Плавно показываем tableView
+                    UIView.animate(withDuration: 0.2) {
+                        self.tableView.alpha = 1
                     }
 
                     print("✅ Loaded \(self.messages.count) messages")
@@ -552,7 +578,6 @@ extension ChatViewController: UITableViewDelegate, UITableViewDataSource {
         let senderAvatarURL = message.isIncoming ? (chat.avatarURL ?? chat.otherParticipant?.avatarURL) : nil
 
         cell.configure(with: message, senderAvatarURL: senderAvatarURL)
-        cell.transform = CGAffineTransform(scaleX: 1, y: -1)
         return cell
     }
 }
