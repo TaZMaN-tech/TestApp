@@ -2,7 +2,7 @@
 //  NewChatViewController.swift
 //  TestApp
 //
-//  Created by Claude on 13.01.2026.
+//  Created by Тадевос Курдоглян on 13.01.2026.
 //
 
 import UIKit
