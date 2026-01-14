@@ -47,6 +47,12 @@ struct User: Codable {
     var avatarURL: String? {
         return avatarUrl ?? avatar
     }
+
+    var lastSeenAt: Date? {
+        guard let lastSeen = lastSeen else { return nil }
+        let formatter = ISO8601DateFormatter()
+        return formatter.date(from: lastSeen)
+    }
 }
 
 struct TokenInfo: Codable {

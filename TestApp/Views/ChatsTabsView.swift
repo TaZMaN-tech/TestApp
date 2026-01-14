@@ -11,10 +11,7 @@ protocol ChatsTabsViewDelegate: AnyObject {
     func chatsTabsViewDidSelectTab(_ tab: ChatsTab)
 }
 
-enum ChatsTab {
-    case messages
-    case archive
-}
+// ChatsTab enum is defined in ChatsViewModel.swift
 
 class ChatsTabsView: UIView {
 

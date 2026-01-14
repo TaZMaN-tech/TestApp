@@ -2,7 +2,7 @@
 //  Chat.swift
 //  TestApp
 //
-//  Created by Claude on 12.01.2026.
+//  Created by Тадевос Курдоглян on 12.01.2026.
 //
 
 import Foundation
@@ -22,6 +22,7 @@ struct Chat: Codable, Identifiable {
     let updatedAt: String?
     let foundMessage: Message?
     let totalMatchesInChat: Int?
+    var isArchived: Bool?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -38,6 +39,7 @@ struct Chat: Codable, Identifiable {
         case updatedAt = "updated_at"
         case foundMessage = "found_message"
         case totalMatchesInChat = "total_matches_in_chat"
+        case isArchived = "is_archived"
     }
 
     var displayName: String {
