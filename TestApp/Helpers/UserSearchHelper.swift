@@ -49,4 +49,33 @@ class UserSearchHelper {
 
         throw NSError(domain: "UserSearchHelper", code: -1, userInfo: [NSLocalizedDescriptionKey: "Chat not found after message sent"])
     }
+
+    static func createChatWithUser(_ user: User) async throws -> Chat {
+        print("📤 Creating chat with user ID: \(user.id), name: \(user.name ?? "nil")")
+
+        let request = MessageSendRequest(
+            recipientId: user.id,
+            username: nil,
+            phoneNumber: nil,
+            messageType: "text",
+            content: "Привет!",
+            files: nil
+        )
+
+        let response = try await APIService.shared.sendMessage(request: request)
+        print("✅ Message sent successfully, response: \(response)")
+
+        let chatsResponse = try await APIService.shared.getChats(limit: 100)
+        print("📋 Retrieved \(chatsResponse.chats.count) chats")
+
+        // Find chat by matching participant ID
+        if let chat = chatsResponse.chats.first(where: { chat in
+            return chat.otherParticipant?.id == user.id
+        }) {
+            print("✅ Found chat with user ID: \(user.id)")
+            return chat
+        }
+
+        throw NSError(domain: "UserSearchHelper", code: -1, userInfo: [NSLocalizedDescriptionKey: "Chat not found after message sent"])
+    }
 }

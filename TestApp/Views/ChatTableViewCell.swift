@@ -146,7 +146,7 @@ class ChatTableViewCell: UITableViewCell {
             onlineIndicator.isHidden = true
         }
 
-        if let avatarURL = chat.avatar ?? chat.otherParticipant?.avatar,
+        if let avatarURL = chat.avatarURL ?? chat.otherParticipant?.avatarURL,
            let url = URL(string: avatarURL) {
             loadImage(from: url)
         } else {

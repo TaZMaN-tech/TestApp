@@ -58,6 +58,12 @@ class ChatsViewController: UIViewController {
         loadChats()
     }
 
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // Скрываем navigation bar на экране списка чатов (у нас свой headerView)
+        navigationController?.setNavigationBarHidden(true, animated: animated)
+    }
+
     private func setupUI() {
         view.backgroundColor = DesignSystem.Colors.primaryBackground
 
@@ -128,8 +134,12 @@ class ChatsViewController: UIViewController {
 
                 let currentUser: User = try await APIService.shared.getCurrentUser()
                 await MainActor.run {
-                    let username = currentUser.username ?? currentUser.firstName ?? "Пользователь"
-                    self.headerView.configure(username: username, avatarURL: currentUser.avatar)
+                    // Сохраняем ID текущего пользователя
+                    AuthManager.shared.currentUserId = currentUser.id
+                    print("✅ Current user ID saved: \(currentUser.id)")
+
+                    let username = currentUser.username ?? currentUser.name ?? currentUser.firstName ?? "Пользователь"
+                    self.headerView.configure(username: username, avatarURL: currentUser.avatarURL)
                 }
             } catch {
                 print("❌ Ошибка загрузки данных пользователя: \(error)")
@@ -190,11 +200,11 @@ class ChatsViewController: UIViewController {
     }
 
     @objc private func searchUserTapped() {
-        let alert = UIAlertController(title: "Поиск пользователя", message: "Введите username пользователя", preferredStyle: .alert)
+        let alert = UIAlertController(title: "Поиск пользователя", message: "Введите username или имя пользователя", preferredStyle: .alert)
         alert.addTextField { textField in
-            textField.placeholder = "Username"
+            textField.placeholder = "Например: natfullin"
             textField.autocapitalizationType = .none
-            textField.text = "2/natfullin"
+            textField.text = "natfullin"
         }
 
         alert.addAction(UIAlertAction(title: "Отмена", style: .cancel))
@@ -212,6 +222,7 @@ class ChatsViewController: UIViewController {
 
         Task {
             do {
+                // Проверяем существующие чаты
                 if let existingChat = UserSearchHelper.findUserInChats(username: username, chats: self.chats) {
                     await MainActor.run {
                         loadingAlert.dismiss(animated: true) {
@@ -219,24 +230,52 @@ class ChatsViewController: UIViewController {
                             self.navigationController?.pushViewController(chatVC, animated: true)
                         }
                     }
-                } else {
-                    let chat = try await UserSearchHelper.createChatWithUsername(username)
+                    return
+                }
 
-                    await MainActor.run {
-                        self.chats.insert(chat, at: 0)
-                        self.filteredChats = self.chats
-                        self.tableView.reloadData()
+                // Ищем пользователя через API (сначала по telegram_username, потом по q)
+                print("🔍 Searching for user: \(username)")
 
-                        loadingAlert.dismiss(animated: true) {
-                            let chatVC = ChatViewController(chat: chat)
-                            self.navigationController?.pushViewController(chatVC, animated: true)
-                        }
+                var searchResults: [User] = []
+
+                // Пробуем поиск по telegram_username
+                do {
+                    searchResults = try await APIService.shared.searchUsersByTelegramUsername(telegramUsername: username)
+                    print("🔍 Found \(searchResults.count) users by telegram_username")
+                } catch {
+                    print("⚠️ Telegram username search failed, trying q parameter")
+                    searchResults = try await APIService.shared.searchUsers(query: username)
+                    print("🔍 Found \(searchResults.count) users by q")
+                }
+
+                for user in searchResults {
+                    print("   User: id=\(user.id), username=\(user.username ?? "nil"), name=\(user.name ?? "nil"), telegramUsername=\(user.telegramUsername ?? "nil")")
+                }
+
+                guard let foundUser = searchResults.first else {
+                    throw NSError(domain: "UserSearch", code: 404, userInfo: [NSLocalizedDescriptionKey: "Пользователь не найден. Попробуйте: natfullin, 2, или другие варианты"])
+                }
+
+                // Создаём чат с найденным пользователем
+                print("✅ Creating chat with user: id=\(foundUser.id), name=\(foundUser.name ?? "nil")")
+                let chat = try await UserSearchHelper.createChatWithUser(foundUser)
+
+                await MainActor.run {
+                    self.chats.insert(chat, at: 0)
+                    self.filteredChats = self.chats
+                    self.tableView.reloadData()
+
+                    loadingAlert.dismiss(animated: true) {
+                        let chatVC = ChatViewController(chat: chat)
+                        self.navigationController?.pushViewController(chatVC, animated: true)
                     }
                 }
             } catch {
+                print("❌ Search error: \(error)")
                 await MainActor.run {
                     loadingAlert.dismiss(animated: true) {
-                        let errorAlert = UIAlertController(title: "Ошибка", message: "Пользователь не найден или не удалось создать чат", preferredStyle: .alert)
+                        let errorMessage = (error as NSError).localizedDescription
+                        let errorAlert = UIAlertController(title: "Ошибка", message: errorMessage, preferredStyle: .alert)
                         errorAlert.addAction(UIAlertAction(title: "OK", style: .default))
                         self.present(errorAlert, animated: true)
                     }

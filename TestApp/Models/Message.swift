@@ -9,11 +9,13 @@ import Foundation
 
 struct Message: Codable, Identifiable {
     let id: Int
-    let chatId: Int
+    let chatId: Int? // optional: not present in last_message payloads
     let senderId: Int
-    let messageType: String
+    let messageType: String? // optional: may be absent in some responses
     let content: String?
     let files: [MessageFile]?
+    let videoId: Int? // present in some responses
+    let nomenclatureId: Int? // present in some responses
     let isRead: Bool?
     let createdAt: String
     let updatedAt: String?
@@ -25,6 +27,8 @@ struct Message: Codable, Identifiable {
         case messageType = "message_type"
         case content
         case files
+        case videoId = "video_id"
+        case nomenclatureId = "nomenclature_id"
         case isRead = "is_read"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
@@ -81,9 +85,12 @@ struct MessageSendResponse: Codable {
 
 struct MessageListResponse: Codable {
     let messages: [Message]
-    let total: Int
-    let offset: Int
-    let limit: Int
+    let count: Int
+
+    enum CodingKeys: String, CodingKey {
+        case messages
+        case count
+    }
 }
 
 struct ChatSubscription: Codable {

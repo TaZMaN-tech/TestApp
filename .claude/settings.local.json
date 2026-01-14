@@ -20,7 +20,9 @@
       "Bash(git -C /Users/tadevoskurdoglian/Desktop/Tests/TestApp commit -m \"$\\(cat <<''EOF''\nFix ChatListResponse model to match API response format\n\n- Changed ''total'' field to ''count'' to match API response\n- Removed ''offset'' and ''limit'' fields \\(not returned by API\\)\n- API returns: {\"count\":0,\"chats\":[]}\n- This fixes the decoding error when loading chats\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git -C /Users/tadevoskurdoglian/Desktop/Tests/TestApp log --oneline -8)",
       "Bash(git -C /Users/tadevoskurdoglian/Desktop/Tests/TestApp add:*)",
-      "Bash(git -C /Users/tadevoskurdoglian/Desktop/Tests/TestApp commit:*)"
+      "Bash(git -C /Users/tadevoskurdoglian/Desktop/Tests/TestApp commit:*)",
+      "Bash(git stash:*)",
+      "Bash(git fsck:*)"
     ]
   }
 }
