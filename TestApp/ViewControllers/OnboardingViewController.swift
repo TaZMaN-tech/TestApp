@@ -2,7 +2,7 @@
 //  OnboardingViewController.swift
 //  TestApp
 //
-//  Created by Claude on 13.01.2026.
+//  Created by Тадевос Курдоглян on 13.01.2026.
 //
 
 import UIKit
@@ -10,7 +10,7 @@ import UIKit
 class OnboardingViewController: UIViewController {
 
     private var currentPage = 0
-    private let totalPages = 3
+    private let totalPages = 4
 
     private let pages: [(title: String, description: String, imageName: String)] = [
         (
@@ -27,6 +27,11 @@ class OnboardingViewController: UIViewController {
             title: "Делайте покупки в маркете",
             description: "Тут какое-то описание в пару строчек\nкак классно можно делать что-то",
             imageName: "onboarding3"
+        ),
+        (
+            title: "Участвуйте в акциях",
+            description: "Тут какое-то описание в пару строчек\nкак классно можно делать что-то",
+            imageName: "onboarding4"
         )
     ]
 
@@ -41,7 +46,7 @@ class OnboardingViewController: UIViewController {
 
     private let pageControl: UIPageControl = {
         let pageControl = UIPageControl()
-        pageControl.numberOfPages = 3
+        pageControl.numberOfPages = 4
         pageControl.currentPage = 0
         pageControl.pageIndicatorTintColor = DesignSystem.Colors.secondaryText.withAlphaComponent(0.3)
         pageControl.currentPageIndicatorTintColor = .white
@@ -118,9 +123,12 @@ class OnboardingViewController: UIViewController {
         scrollView.addSubview(contentStackView)
 
         // Add pages
+        var pageConstraints: [NSLayoutConstraint] = []
         for i in 0..<totalPages {
             let pageView = createPageView(for: i)
             contentStackView.addArrangedSubview(pageView)
+            // Каждая страница должна быть равна ширине view
+            pageConstraints.append(pageView.widthAnchor.constraint(equalTo: view.widthAnchor))
         }
 
         NSLayoutConstraint.activate([
@@ -156,6 +164,9 @@ class OnboardingViewController: UIViewController {
             skipButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -DesignSystem.Spacing.large),
             skipButton.heightAnchor.constraint(equalToConstant: 56)
         ])
+
+        // Активируем constraints для ширины страниц
+        NSLayoutConstraint.activate(pageConstraints)
     }
 
     private func createPageView(for index: Int) -> UIView {

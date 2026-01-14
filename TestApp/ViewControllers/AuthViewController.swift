@@ -12,14 +12,12 @@ class AuthViewController: UIViewController {
     private let authWebSocket = AuthWebSocketService()
     private var currentSessionId: String?
 
-    // Иконка логотипа (заглушка - будет синяя звезда с иконками)
+    // Иконка логотипа
     private let logoImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFit
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        // TODO: Добавить настоящую иконку из Figma
-        imageView.backgroundColor = DesignSystem.Colors.accentBlue
-        imageView.layer.cornerRadius = 100
+        imageView.image = UIImage(named: "login")
         return imageView
     }()
 
