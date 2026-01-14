@@ -2,7 +2,7 @@
 //  ChatTableViewCell.swift
 //  TestApp
 //
-//  Created by Claude on 12.01.2026.
+//  Created by Тадевос Курдоглян on 12.01.2026.
 //
 
 import UIKit

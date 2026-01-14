@@ -85,7 +85,7 @@ final class DependencyContainer {
 
 // MARK: - Property Wrapper for Dependency Injection
 
-/// Property wrapper for automatic dependency injection
+/// Property wrapper for dependency injection
 /// Usage: @Injected var chatRepository: ChatRepository
 @propertyWrapper
 struct Injected<T> {
